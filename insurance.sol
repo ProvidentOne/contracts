@@ -21,8 +21,10 @@ contract InsuranceFund is Owned {
     string public standard = 'InsuranceToken 0.1';
     string public name;
     string public symbol;
-    uint16 public tokenTypes;
+    uint16 public tokenTypes = 3;
     uint256 public initialSupply;
+    
+    event Transfer(address indexed from, address indexed to, uint256 value);
     
     InvestmentFund public investmentFund;
     
@@ -35,19 +37,23 @@ contract InsuranceFund is Owned {
         uint256 initialSupplyPerToken,
         string tokenName,
         string tokenSymbol,
-        uint256[] initialTokenPrices
+        uint256[] initialTokenPricesFinney
         ) {
           
-        uint16 nTokenTypes = uint16(initialTokenPrices.length);
-        for (uint16 i=0; i<nTokenTypes; ++i) {
-          balance[i][msg.sender] = initialSupplyPerToken;
-          tokenPrices[i] = initialTokenPrices[i];
+        for (uint16 i=0; i<initialTokenPricesFinney.length; ++i) {
+          balance[i][this] = initialSupplyPerToken;
+          tokenPrices[i] = initialTokenPricesFinney[i] * (1 finney / 1 wei);
         }
         
-        tokenTypes = nTokenTypes;
         owner = msg.sender;                     
         name = tokenName;                                   
         symbol = tokenSymbol;                              
+    }
+    
+    function balanceOf(address _owner) constant returns (uint256 b) {
+        for (uint256 i=0; i<3; ++i) {
+            b += balance[uint16(i)][_owner];
+        }
     }
     
     function setInvestmentFundAddress(address newAddress) onlyOwner {
@@ -55,29 +61,50 @@ contract InsuranceFund is Owned {
         investmentFund = InvestmentFund(newAddress);
     }
     
-    function buyInsuranceToken(uint16 tokenType) {
-        uint256 amount; // TODO: Get trans amount
-        if (amount < tokenPrices[tokenType]) {
+    function buyInsuranceToken(uint16 tokenType) payable returns (uint16 n) {
+    
+        uint256 delta = msg.value - tokenPrices[tokenType];
+        if (delta < 0) {
            throw; 
         }
         
-        uint16 n = 1; // Only one token at the time
+        if (delta > 0 && !msg.sender.send(delta)) {  // recursion attacks
+            throw;
+        }
+       
+        n = 1;
         
-        if (balance[tokenType][owner] < n) { throw; }
-        balance[tokenType][owner] -= n;
+        if (balance[tokenType][this] < n) { throw; }
+        balance[tokenType][this] -= n;
         balance[tokenType][msg.sender] += n;
         supply[tokenType] += n;
-        solveFundBalance(checkFundBalance(getBalance()));
+        
+        Transfer(this, msg.sender, n);
+
     }
     
-    function transferForClaim(uint256 claim, address beneficiaryAddress) onlyOwner {
+    function transferForClaim(uint256 claim, uint16 claimType, address claimer, address beneficiaryAddress) onlyOwner {
         uint256 delta = checkFundBalance(getBalance()) - claim;
         if (delta < 0) {
             solveFundBalance(delta);
             throw; // Cannot pay for claims rn, but asked for money to investment fund. Money will be available on next block.
         }
         
-        beneficiaryAddress.send(delta);
+        uint16 n = 1;
+        
+        if (balance[claimType][claimer] > 0) {
+            balance[claimType][claimer] -= n;
+            balance[claimType][this] += n;
+            
+        } else {
+            throw;
+        }
+        
+        if (!beneficiaryAddress.send(delta)) {
+            throw;
+        } else {
+            Transfer(msg.sender, this, n);
+        }
     }
     
     function calculatePremiums() returns (uint256 premiums){
@@ -90,6 +117,10 @@ contract InsuranceFund is Owned {
         address insuranceFund = this;
         return insuranceFund.balance;
     }
+    
+    function equilibrateFunds() { 
+        solveFundBalance(checkFundBalance(getBalance()));
+    }    
     
     function checkFundBalance(uint256 balance) private returns (uint256 delta){
         delta = balance - calculatePremiums();
@@ -107,15 +138,15 @@ contract InsuranceFund is Owned {
         
     }
     
-    function addTokenType(uint256 newTokenPrice) onlyOwner {
+    function addTokenType(uint256 newTokenPriceFinney) onlyOwner {
         tokenTypes += 1;
-        tokenPrices[tokenTypes] = newTokenPrice;
-        balance[tokenTypes][owner] = initialSupply;
+        tokenPrices[tokenTypes] = newTokenPriceFinney * (1 finney / 1 wei);
+        balance[tokenTypes][this] = initialSupply;
     } 
     
     function mintToken(uint256 mintedAmount) onlyOwner {
         for (uint16 i=0; i<tokenTypes; ++i) {
-            balance[i][owner] += mintedAmount;
+            balance[i][this] += mintedAmount;
             supply[i] += mintedAmount;
         }
     }
