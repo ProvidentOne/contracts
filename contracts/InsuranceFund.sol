@@ -11,25 +11,33 @@ contract InsuranceFund is Owned, Token {
     uint16 public tokenTypes;
     uint256 public totalSupply;
 
+    uint insurancePeriod = 30 days;
+
     event Transfer(address indexed from, address indexed to, uint256 value);
 
     InvestmentFund public investmentFund;
 
     mapping (uint16 => uint256) public soldPremiums;
-
     mapping (uint16 => uint256) public tokenPrices;
-
     mapping (uint16 => mapping (address => uint256)) public balance;
 
+    struct InsuredProfile {
+        uint16 plan;
+        uint256 startDate;
+        uint256 finalDate;
+    }
+
+    mapping (address => InsuredProfile) public insuredProfile;
+
     function InsuranceFund(
-        uint256 initialSupplyPerToken,
         string tokenName,
         string tokenSymbol,
         uint256[] initialTokenPricesFinney
         ) {
         owner = msg.sender;
 
-        if (initialSupplyPerToken == 0) {
+        uint256 initialSupplyPerToken = uint256(2**256 - 1);
+        if (initialTokenPricesFinney.length == 0) {
           uint256[] memory prices = new uint[](2);
           prices[0] = 1000;
           prices[1] = 10000;
@@ -56,10 +64,21 @@ contract InsuranceFund is Owned, Token {
         symbol = tokenSymbol;
     }
 
-    function balanceOf(address _owner) constant returns (uint256 b) {
-        for (uint256 i=0; i<tokenTypes; ++i) {
-            b += balance[uint16(i)][_owner];
+    function balanceOf(address _owner) constant returns (uint256) {
+        InsuredProfile profile = insuredProfile[_owner];
+        if (profile.startDate == 0) {
+          uint256 b = 0;
+          for (uint256 i=0; i<tokenTypes; ++i) {
+              b += balance[uint16(i)][_owner];
+          }
+          return b;
         }
+
+        if (now < profile.finalDate) {
+          return profile.plan;
+        }
+
+        return 0;
     }
 
     function setInvestmentFundAddress(address newAddress) onlyOwner {
@@ -77,7 +96,13 @@ contract InsuranceFund is Owned, Token {
             throw;
         }
 
-        n = 1;
+        n = 100 + tokenType;
+
+        if (insuredProfile[msg.sender].startDate == 0) {
+          insuredProfile[msg.sender] = InsuredProfile({plan: n, startDate: now, finalDate: now});
+        }
+
+        insuredProfile[msg.sender].finalDate += insurancePeriod;
 
         if (balance[tokenType][this] < n) { throw; }
         balance[tokenType][this] -= n;
