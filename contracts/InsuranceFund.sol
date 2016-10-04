@@ -8,7 +8,7 @@ contract InsuranceFund is Owned, Token {
     string public standard = 'InsuranceToken 0.1';
     string public name;
     string public symbol;
-    uint16 public tokenTypes = 3;
+    uint16 public tokenTypes;
     uint256 public totalSupply;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -18,6 +18,7 @@ contract InsuranceFund is Owned, Token {
     mapping (uint16 => uint256) public soldPremiums;
 
     mapping (uint16 => uint256) public tokenPrices;
+
     mapping (uint16 => mapping (address => uint256)) public balance;
 
     function InsuranceFund(
@@ -26,20 +27,37 @@ contract InsuranceFund is Owned, Token {
         string tokenSymbol,
         uint256[] initialTokenPricesFinney
         ) {
+        owner = msg.sender;
 
+        if (initialSupplyPerToken == 0) {
+          uint256[] memory prices = new uint[](2);
+          prices[0] = 1000;
+          prices[1] = 10000;
+          setup(1000, "", "", prices);
+        } else {
+          setup(initialSupplyPerToken, tokenName, tokenSymbol, initialTokenPricesFinney);
+        }
+    }
+
+    function setup(
+      uint256 initialSupplyPerToken,
+      string tokenName,
+      string tokenSymbol,
+      uint256[] initialTokenPricesFinney
+      ) {
         for (uint16 i=0; i<initialTokenPricesFinney.length; ++i) {
           balance[i][this] = initialSupplyPerToken;
           tokenPrices[i] = ConvertLib.finneyToWei(initialTokenPricesFinney[i]);
           totalSupply += initialSupplyPerToken;
+          tokenTypes += 1;
         }
 
-        owner = msg.sender;
         name = tokenName;
         symbol = tokenSymbol;
     }
 
     function balanceOf(address _owner) constant returns (uint256 b) {
-        for (uint256 i=0; i<3; ++i) {
+        for (uint256 i=0; i<tokenTypes; ++i) {
             b += balance[uint16(i)][_owner];
         }
     }
@@ -50,7 +68,6 @@ contract InsuranceFund is Owned, Token {
     }
 
     function buyInsuranceToken(uint16 tokenType) returns (uint16 n) {
-
         uint256 delta = msg.value - tokenPrices[tokenType];
         if (delta < 0) {
            throw;
@@ -68,7 +85,6 @@ contract InsuranceFund is Owned, Token {
         soldPremiums[tokenType] += n;
 
         Transfer(this, msg.sender, n);
-
     }
 
     function transferForClaim(uint256 claim, uint16 claimType, address claimer, address beneficiaryAddress) onlyOwner {

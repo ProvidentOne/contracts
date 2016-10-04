@@ -39,6 +39,7 @@ window.onload = function() {
   web3.eth.getAccounts(function(err, accs) {
     if (err != null) {
       alert("There was an error fetching your accounts.");
+      console.log(err);
       return;
     }
 

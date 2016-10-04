@@ -1,11 +1,43 @@
-contract('MetaCoin', function(accounts) {
-  it("should put 10000 MetaCoin in the first account", function() {
-    var meta = MetaCoin.deployed();
+finneyToWei = function (finney) {
+  return finney * Math.pow(10, 15);
+}
 
-    return meta.getBalance.call(accounts[0]).then(function(balance) {
-      assert.equal(balance.valueOf(), 10000, "10000 wasn't in the first account");
+contract('Insurance', function(accounts) {
+  it("should have all tokens", function() {
+    var insurance = InsuranceFund.deployed();
+
+    var supply;
+
+    return insurance.totalSupply.call().then(function(s) {
+      supply = s.valueOf();
+      return insurance.balanceOf.call(insurance.address)
+    }).then(function(balance) {
+      assert.isAbove(balance.valueOf(), 0, "Contract should own tokens");
+      assert.equal(balance.valueOf(), supply, "Contract doesnt own all tokens");
     });
   });
+
+  it("should be able to buy insurance tokens", function() {
+    var insurance = InsuranceFund.deployed();
+    return insurance.buyInsuranceToken(0, {from: accounts[0], value: finneyToWei(1000)}).then(function(v) {
+      return insurance.balanceOf.call(accounts[0]);
+    }).then(function(balance) {
+      assert.isAbove(balance.valueOf(), 0, "Balance should have increased");
+    });
+  });
+
+  it("should fail if doesn't pay enough", function() {
+    var insurance = InsuranceFund.deployed();
+
+    return insurance.buyInsuranceToken(0, {from: accounts[1], value: finneyToWei(500)})
+      .then(function(o) { assert.fail('shouldnt have succeeded') })
+      .catch(function(e){
+        assert.typeOf(e, 'Error')
+    })
+  });
+
+
+  /*
   it("should call a function that depends on a linked library", function() {
     var meta = MetaCoin.deployed();
     var metaCoinBalance;
@@ -52,4 +84,5 @@ contract('MetaCoin', function(accounts) {
       assert.equal(account_two_ending_balance, account_two_starting_balance + amount, "Amount wasn't correctly sent to the receiver");
     });
   });
+  */
 });
