@@ -54,12 +54,14 @@ contract('Insurance', function(accounts) {
     var amount = web3.toWei(1000, 'finney');
     var claimAmount = web3.toWei(10, 'finney');
     var tokenPlan = web3.toBigNumber(0);
+    var beneficiaryAddress = accounts[4];
+
+    var initialBalance = web3.eth.getBalance(beneficiaryAddress);
 
     return insurance.buyInsuranceToken(tokenPlan, {from: accounts[1], value: amount}).then(function(v) {
-      return insurance.transferForClaim(claimAmount, tokenPlan, accounts[1], accounts[0], {from: accounts[0], value: web3.toWei(1, 'finney')})
+      return insurance.transferForClaim(claimAmount, tokenPlan, accounts[1], beneficiaryAddress, {from: accounts[0]})
     }).then(function (){
-        console.log('got the lol')
-        assert.equal(web3.eth.getBalance(insurance.address).toString(), claimAmount, "Should have gotten money for claim");
+        assert.equal(web3.eth.getBalance(beneficiaryAddress).valueOf(), initialBalance.plus(claimAmount).valueOf(), "Should have gotten money for claim");
     })
   })
 });

@@ -119,18 +119,19 @@ contract InsuranceFund is Owned, Token {
 
     function transferForClaim(uint256 claimAmount, uint16 insuranceType, address claimer, address beneficiaryAddress) onlyOwner {
         Log("Hi");
+
         uint16 n = 100 + insuranceType;
 
         InsuredProfile insured = insuredProfile[claimer];
-        if (insured.plan == n && insured.finalDate > now && insured.startDate < now) {
+        if (insured.plan == n && insured.finalDate >= now && insured.startDate <= now) {
             // TODO: what do we do here? D:
             balance[insuranceType][claimer] -= n;
             balance[insuranceType][this] += n;
         } else {
+            Log("Hi");
             throw;
         }
 
-        Log("Byte");
         if (beneficiaryAddress.send(claimAmount)) {
             Transfer(msg.sender, this, n);
         } else {
