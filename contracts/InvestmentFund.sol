@@ -6,13 +6,16 @@ contract InvestmentFund is Owned, StandardToken {
     string public name;
     string public symbol;
     address public insuranceFund;
+    uint8 public decimals;
+
+    uint256 public tokenSellPrice;
 
     mapping (address => uint256) public dividends;
 
     function InvestmentFund(
-      uint256 initialSupply,
       string tokenName,
       string tokenSymbol,
+      uint256 initialSupply,
       uint256 initialTokenPrice,
       address insuranceFundAddress
       ) {
@@ -23,7 +26,23 @@ contract InvestmentFund is Owned, StandardToken {
       insuranceFund = insuranceFundAddress;
       totalSupply = initialSupply;
       balances[this] = initialSupply;
+      tokenSellPrice = initialTokenPrice;
+
       addIfNewHolder(this);
+    }
+
+    function buyTokens() {
+      uint256 tokenAmount = msg.value / tokenSellPrice;
+      if (balances[this] >= tokenAmount && balances[msg.sender] + tokenAmount > balances[msg.sender])  {
+        balances[msg.sender] += tokenAmount;
+        balances[this] -= tokenAmount;
+        Transfer(this, msg.sender, tokenAmount);
+        if (!insuranceFund.call.value(msg.value)()) {
+          throw;
+        }
+      } else {
+        throw;
+      }
     }
 
     function sendProfitsToHolders() returns (bool) {

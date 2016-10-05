@@ -1,13 +1,6 @@
-getBalance = (address) => {
-  return new Promise((fullfil, reject) => {
-    web3.eth.getBalance(address, (err, balance) => {
-      if (err) { return reject(err) }
-      return fullfil(balance);
-    })
-  })
-}
+const helpers = require('./helpers');
 
-contract('Insurance', function(accounts) {
+contract('InsuranceFund', (accounts) => {
   it("should have all tokens", function() {
     var insurance = InsuranceFund.deployed();
 
@@ -29,7 +22,7 @@ contract('Insurance', function(accounts) {
       return insurance.balanceOf.call(accounts[0]);
     }).then((balance) =>{
       assert.isAbove(balance.valueOf(), 0, "Token balance should have increased");
-      return getBalance(insurance.address);
+      return helpers.getBalance(insurance.address);
     }).then((balance) => {
       assert.equal(balance.toString(), amount.toString(), "Contract balance should have increased");
     })
@@ -70,12 +63,12 @@ contract('Insurance', function(accounts) {
     var initialBalance;
 
     return insurance.buyInsuranceToken(tokenPlan, {from: accounts[1], value: amount}).then(function(v) {
-      return getBalance(beneficiaryAddress);
+      return helpers.getBalance(beneficiaryAddress);
     }).then((balance) => {
       initialBalance = balance;
       return insurance.transferForClaim(claimAmount, tokenPlan, accounts[1], beneficiaryAddress, {from: accounts[0]})
     }).then(() => {
-        return getBalance(beneficiaryAddress);
+        return helpers.getBalance(beneficiaryAddress);
     }).then((balance) => {
       assert.equal(balance.valueOf(), initialBalance.plus(claimAmount).valueOf(), "Should have gotten money for claim");
     });
