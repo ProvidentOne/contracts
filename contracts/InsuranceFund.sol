@@ -16,9 +16,12 @@ contract InsuranceFund is Owned, Token {
 
     InvestmentFund public investmentFund;
 
-    mapping (uint16 => uint256) public soldPremiums;
     mapping (uint16 => uint256) public tokenPrices;
     mapping (uint16 => mapping (address => uint256)) public balance;
+
+    uint256 public soldPremiums;
+    uint256 public claimedMoney;
+    uint256 public accumulatedLosses;
 
     struct InsuredProfile {
         uint16 plan;
@@ -81,12 +84,12 @@ contract InsuranceFund is Owned, Token {
     }
 
     function buyInsuranceToken(uint16 tokenType) returns (uint16 n) {
-        uint256 delta = msg.value - tokenPrices[tokenType];
+        int256 delta = int256(msg.value) - int256(tokenPrices[tokenType]);
         if (delta < 0) {
            throw;
         }
 
-        if (delta > 0 && !msg.sender.send(delta)) {  // recursion attacks
+        if (delta > 0 && !msg.sender.send(uint256(delta))) {  // recursion attacks
             throw;
         }
 
@@ -107,7 +110,7 @@ contract InsuranceFund is Owned, Token {
         if (balance[tokenType][this] < n) { throw; }
         balance[tokenType][this] -= n;
         balance[tokenType][msg.sender] = n;
-        soldPremiums[tokenType] += n;
+        soldPremiums += tokenPrices[tokenType];
 
         Transfer(this, msg.sender, n);
     }
@@ -124,41 +127,30 @@ contract InsuranceFund is Owned, Token {
         }
 
         if (beneficiaryAddress.send(claimAmount)) {
+            claimedMoney += claimAmount;
             Transfer(msg.sender, this, n);
         } else {
             throw;
         }
     }
 
-    function calculatePremiums() returns (uint256 premiums){
-        for (uint256 i=0; i<tokenTypes; ++i) {
-            premiums += soldPremiums[uint16(i)];
+    function performFundAccounting() public onlyOwner {
+      int256 balance = int256(soldPremiums) - int256(claimedMoney) - int256(accumulatedLosses);
+      if (balance > 0) {
+        if (address(investmentFund) != 0) {
+          if (investmentFund.sendProfitsToHolders.value(uint256(balance))()) {
+            soldPremiums = 0;
+            claimedMoney = 0;
+            accumulatedLosses = 0;
+          } else {
+            throw;
+          }
         }
-    }
-
-    function getBalance() returns (uint256) {
-        address insuranceFund = this;
-        return insuranceFund.balance;
-    }
-
-    function equilibrateFunds() {
-        solveFundBalance(checkFundBalance(getBalance()));
-    }
-
-    function checkFundBalance(uint256 balance) private returns (uint256 delta){
-        delta = balance - calculatePremiums();
-    }
-
-    function solveFundBalance(uint256 delta) private {
-        if (delta > 0) {
-            investmentFund.profits.value(delta)();
-        } else {
-            investmentFund.needs(-delta);
-        }
-    }
-
-    function sendInvestmentInjection() {
-
+      } else {
+        soldPremiums = 0;
+        claimedMoney = 0;
+        accumulatedLosses = uint256(-balance);
+      }
     }
 
     function addTokenType(uint256 newTokenPrice, uint256 mintAmount) onlyOwner {

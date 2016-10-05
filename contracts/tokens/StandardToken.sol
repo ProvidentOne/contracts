@@ -11,6 +11,9 @@ import "./TransferableToken.sol";
 
 contract StandardToken is TransferableToken {
 
+    mapping (uint256 => address) internal tokenHolders;
+    uint256 internal lastIndex;
+
     function transfer(address _to, uint256 _value) returns (bool success) {
         //Default assumes totalSupply can't be over max (2^256 - 1).
         //If your token leaves out totalSupply and can issue more tokens as time goes on, you need to check if it doesn't wrap.
@@ -19,6 +22,8 @@ contract StandardToken is TransferableToken {
         if (balances[msg.sender] >= _value && _value > 0) {
             balances[msg.sender] -= _value;
             balances[_to] += _value;
+
+            addIfNewHolder(_to);
             Transfer(msg.sender, _to, _value);
             return true;
         } else { return false; }
@@ -31,6 +36,7 @@ contract StandardToken is TransferableToken {
             balances[_to] += _value;
             balances[_from] -= _value;
             allowed[_from][msg.sender] -= _value;
+            addIfNewHolder(_to);
             Transfer(_from, _to, _value);
             return true;
         } else { return false; }
@@ -52,4 +58,19 @@ contract StandardToken is TransferableToken {
 
     mapping (address => uint256) balances;
     mapping (address => mapping (address => uint256)) allowed;
+
+    function addIfNewHolder(address holder) internal {
+      bool found = false;
+      for (uint i = 0; i<lastIndex; ++i) {
+        if (tokenHolders[i] == holder) {
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        tokenHolders[lastIndex] = holder;
+        lastIndex += 1;
+      }
+    }
 }
