@@ -1,4 +1,6 @@
-contract Owned {
+import "./Logger.sol";
+
+contract Owned is Logger {
     address public owner;
 
     function owned() {
@@ -6,6 +8,8 @@ contract Owned {
     }
 
     modifier onlyOwner {
+        Log("Only owner");
+        // Log(string(msg.sender));
         if (msg.sender == owner) _
     }
 

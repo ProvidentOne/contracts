@@ -32,18 +32,18 @@ contract InsuranceFund is Owned, Token {
     function InsuranceFund(
         string tokenName,
         string tokenSymbol,
-        uint256[] initialTokenPricesFinney
+        uint256[] initialTokenPrices
         ) {
         owner = msg.sender;
 
         uint256 initialSupplyPerToken = uint256(2**256 - 1);
-        if (initialTokenPricesFinney.length == 0) {
+        if (initialTokenPrices.length == 0) {
           uint256[] memory prices = new uint[](2);
           prices[0] = 1000;
           prices[1] = 10000;
           setup(1000, "", "", prices);
         } else {
-          setup(initialSupplyPerToken, tokenName, tokenSymbol, initialTokenPricesFinney);
+          setup(initialSupplyPerToken, tokenName, tokenSymbol, initialTokenPrices);
         }
     }
 
@@ -51,11 +51,11 @@ contract InsuranceFund is Owned, Token {
       uint256 initialSupplyPerToken,
       string tokenName,
       string tokenSymbol,
-      uint256[] initialTokenPricesFinney
+      uint256[] initialTokenPrices
       ) {
-        for (uint16 i=0; i<initialTokenPricesFinney.length; ++i) {
+        for (uint16 i=0; i<initialTokenPrices.length; ++i) {
           balance[i][this] = initialSupplyPerToken;
-          tokenPrices[i] = ConvertLib.finneyToWei(initialTokenPricesFinney[i]);
+          tokenPrices[i] = initialTokenPrices[i];
           totalSupply += initialSupplyPerToken;
           tokenTypes += 1;
         }
@@ -100,6 +100,11 @@ contract InsuranceFund is Owned, Token {
 
         if (insuredProfile[msg.sender].startDate == 0) {
           insuredProfile[msg.sender] = InsuredProfile({plan: n, startDate: now, finalDate: now});
+        } else {
+          if (now > insuredProfile[msg.sender].finalDate) {
+            insuredProfile[msg.sender].startDate = now;
+            insuredProfile[msg.sender].finalDate = now;
+          }
         }
 
         insuredProfile[msg.sender].finalDate += insurancePeriod;
@@ -112,27 +117,24 @@ contract InsuranceFund is Owned, Token {
         Transfer(this, msg.sender, n);
     }
 
-    function transferForClaim(uint256 claim, uint16 claimType, address claimer, address beneficiaryAddress) onlyOwner {
-        uint256 delta = checkFundBalance(getBalance()) - claim;
-        if (delta < 0) {
-            solveFundBalance(delta);
-            throw; // Cannot pay for claims rn, but asked for money to investment fund. Money will be available on next block.
-        }
+    function transferForClaim(uint256 claimAmount, uint16 insuranceType, address claimer, address beneficiaryAddress) onlyOwner {
+        Log("Hi");
+        uint16 n = 100 + insuranceType;
 
-        uint16 n = 1;
-
-        if (balance[claimType][claimer] > 0) {
-            balance[claimType][claimer] -= n;
-            balance[claimType][this] += n;
-
+        InsuredProfile insured = insuredProfile[claimer];
+        if (insured.plan == n && insured.finalDate > now && insured.startDate < now) {
+            // TODO: what do we do here? D:
+            balance[insuranceType][claimer] -= n;
+            balance[insuranceType][this] += n;
         } else {
             throw;
         }
 
-        if (!beneficiaryAddress.send(delta)) {
-            throw;
-        } else {
+        Log("Byte");
+        if (beneficiaryAddress.send(claimAmount)) {
             Transfer(msg.sender, this, n);
+        } else {
+            throw;
         }
     }
 
@@ -167,9 +169,9 @@ contract InsuranceFund is Owned, Token {
 
     }
 
-    function addTokenType(uint256 newTokenPriceFinney, uint256 mintAmount) onlyOwner {
+    function addTokenType(uint256 newTokenPrice, uint256 mintAmount) onlyOwner {
         tokenTypes += 1;
-        tokenPrices[tokenTypes] = ConvertLib.finneyToWei(newTokenPriceFinney);
+        tokenPrices[tokenTypes] = newTokenPrice;
         balance[tokenTypes][this] = mintAmount;
         totalSupply += mintAmount;
     }
