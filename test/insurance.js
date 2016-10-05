@@ -1,3 +1,12 @@
+getBalance = (address) => {
+  return new Promise((fullfil, reject) => {
+    web3.eth.getBalance(address, (err, balance) => {
+      if (err) { return reject(err) }
+      return fullfil(balance);
+    })
+  })
+}
+
 contract('Insurance', function(accounts) {
   it("should have all tokens", function() {
     var insurance = InsuranceFund.deployed();
@@ -16,12 +25,14 @@ contract('Insurance', function(accounts) {
   it("should be able to buy insurance tokens", function() {
     var insurance = InsuranceFund.deployed();
     var amount =  web3.toWei(1000, 'finney');
-    return insurance.buyInsuranceToken(0, {from: accounts[0], value: amount}).then(function(v) {
+    return insurance.buyInsuranceToken(0, {from: accounts[0], value: amount}).then((v) => {
       return insurance.balanceOf.call(accounts[0]);
-    }).then(function(balance) {
+    }).then((balance) =>{
       assert.isAbove(balance.valueOf(), 0, "Token balance should have increased");
-      assert.equal(web3.eth.getBalance(insurance.address).toString(), amount.toString(), "Contract balance should have increased");
-    });
+      return getBalance(insurance.address);
+    }).then((balance) => {
+      assert.equal(balance.toString(), amount.toString(), "Contract balance should have increased");
+    })
   });
 
   it("should fail if doesn't pay enough", function() {
@@ -56,12 +67,17 @@ contract('Insurance', function(accounts) {
     var tokenPlan = web3.toBigNumber(0);
     var beneficiaryAddress = accounts[4];
 
-    var initialBalance = web3.eth.getBalance(beneficiaryAddress);
+    var initialBalance;
 
     return insurance.buyInsuranceToken(tokenPlan, {from: accounts[1], value: amount}).then(function(v) {
+      return getBalance(beneficiaryAddress);
+    }).then((balance) => {
+      initialBalance = balance;
       return insurance.transferForClaim(claimAmount, tokenPlan, accounts[1], beneficiaryAddress, {from: accounts[0]})
-    }).then(function (){
-        assert.equal(web3.eth.getBalance(beneficiaryAddress).valueOf(), initialBalance.plus(claimAmount).valueOf(), "Should have gotten money for claim");
-    })
-  })
+    }).then(() => {
+        return getBalance(beneficiaryAddress);
+    }).then((balance) => {
+      assert.equal(balance.valueOf(), initialBalance.plus(claimAmount).valueOf(), "Should have gotten money for claim");
+    });
+  });
 });
