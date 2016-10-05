@@ -5,6 +5,6 @@ build-image:
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
     - docker build -t registry.gitlab.com/providentai/insurance .
-    - docker run -ti registry.gitlab.com/providentai/insurance
+    - docker run registry.gitlab.com/providentai/insurance
   only:
     - master

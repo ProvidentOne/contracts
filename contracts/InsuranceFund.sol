@@ -1,5 +1,4 @@
 import "helpers/Owned.sol";
-import "helpers/ConvertLib.sol";
 
 import "tokens/Token.sol";
 import "InvestmentFund.sol";
@@ -65,20 +64,15 @@ contract InsuranceFund is Owned, Token {
     }
 
     function balanceOf(address _owner) constant returns (uint256) {
-        InsuredProfile profile = insuredProfile[_owner];
-        if (profile.startDate == 0) {
-          uint256 b = 0;
-          for (uint256 i=0; i<tokenTypes; ++i) {
-              b += balance[uint16(i)][_owner];
-          }
-          return b;
+        uint256 b = 0;
+        for (uint256 i=0; i<tokenTypes; ++i) {
+            b += balance[uint16(i)][_owner];
         }
+        return b;
+    }
 
-        if (now < profile.finalDate) {
-          return profile.plan;
-        }
-
-        return 0;
+    function getPlanIdentifier(uint16 tokenType) constant returns (uint16) {
+      return 1 + 100 * tokenType;
     }
 
     function setInvestmentFundAddress(address newAddress) onlyOwner {
@@ -96,11 +90,12 @@ contract InsuranceFund is Owned, Token {
             throw;
         }
 
-        n = 100 + tokenType;
+        n = getPlanIdentifier(tokenType);
 
         if (insuredProfile[msg.sender].startDate == 0) {
           insuredProfile[msg.sender] = InsuredProfile({plan: n, startDate: now, finalDate: now});
         } else {
+          insuredProfile[msg.sender].plan = n;
           if (now > insuredProfile[msg.sender].finalDate) {
             insuredProfile[msg.sender].startDate = now;
             insuredProfile[msg.sender].finalDate = now;
@@ -111,24 +106,20 @@ contract InsuranceFund is Owned, Token {
 
         if (balance[tokenType][this] < n) { throw; }
         balance[tokenType][this] -= n;
-        balance[tokenType][msg.sender] += n;
+        balance[tokenType][msg.sender] = n;
         soldPremiums[tokenType] += n;
 
         Transfer(this, msg.sender, n);
     }
 
     function transferForClaim(uint256 claimAmount, uint16 insuranceType, address claimer, address beneficiaryAddress) onlyOwner {
-        Log("Hi");
-
-        uint16 n = 100 + insuranceType;
+        uint16 n = getPlanIdentifier(insuranceType);
 
         InsuredProfile insured = insuredProfile[claimer];
-        if (insured.plan == n && insured.finalDate >= now && insured.startDate <= now) {
-            // TODO: what do we do here? D:
+        if (balance[insuranceType][claimer] >= n && insured.plan == n && insured.finalDate >= now && insured.startDate <= now) {
             balance[insuranceType][claimer] -= n;
             balance[insuranceType][this] += n;
         } else {
-            Log("Hi");
             throw;
         }
 
