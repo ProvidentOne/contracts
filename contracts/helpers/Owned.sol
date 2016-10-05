@@ -9,8 +9,8 @@ contract Owned is Logger {
 
     modifier onlyOwner {
         Log("Only owner");
-        // Log(string(msg.sender));
-        if (msg.sender == owner) _
+        if (msg.sender != owner) { throw; }
+        else _
     }
 
     function transferOwnership(address newOwner) onlyOwner {
