@@ -12,4 +12,5 @@ test:
   - docker:dind
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
+    - docker pull registry.gitlab.com/providentai/insurance
     - docker run registry.gitlab.com/providentai/insurance
