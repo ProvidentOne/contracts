@@ -52,7 +52,7 @@ contract('InvestmentFund', (accounts) => {
     return investment.buyTokens({from: accounts[2], value: web3.toWei(0.9, 'ether')})
       .then(function(o) { assert.fail('shouldnt have succeeded') })
       .catch(function(e) {
-        assert.typeOf(e, 'Error')
+        assert.typeOf(e, 'Error');
     });
   });
 
@@ -60,10 +60,31 @@ contract('InvestmentFund', (accounts) => {
     var investment = InvestmentFund.deployed();
     return investment.sendProfitsToHolders({from: accounts[0], value: web3.toWei(10, 'ether')})
       .then(() => {
-        return investment.dividends.call(accounts[2])
+        return investment.dividends.call(accounts[2]);
       })
       .then((d) => {
         assert.isAbove(d.valueOf(), 0);
       });
+  });
+
+  it("should be able to withdraw", () => {
+    var investment = InvestmentFund.deployed();
+    var initialBalance;
+    var dividendAmount;
+    return investment.dividends.call(accounts[2])
+      .then((d) => {
+        dividendAmount = d;
+        assert.isAbove(dividendAmount.valueOf(), 0, "should have something to cash out");
+        return helpers.getBalance(accounts[2]);
+      }).then((i) => {
+        initialBalance = i;
+        return investment.withdraw({from: accounts[2]})
+      }).then(() => {
+        return helpers.getBalance(accounts[2])
+      }).then((currentBalance) => {
+        var dif = currentBalance.minus(initialBalance);
+        assert.isAbove(currentBalance.valueOf(), initialBalance.valueOf(), "Should have more money");
+        assert.isBelow(dividendAmount.minus(dif).valueOf(), web3.toWei(0.05, 'finney'), "Should have dividend money (minus reasonable gas)");
+      })
   });
 });

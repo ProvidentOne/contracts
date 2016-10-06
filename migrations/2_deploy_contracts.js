@@ -12,7 +12,7 @@ investmentFund = (insFund) => {
     InvestmentFund, // Contract
     "Investment Fund", // Contract name
     "INV", // Token name
-    1000000, // Supply
+    100, // Supply
     web3.toWei(1, 'ether'), // Initial price,
     insFund // Insurance fund address
   ];

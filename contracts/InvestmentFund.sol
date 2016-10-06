@@ -72,4 +72,8 @@ contract InvestmentFund is Owned, StandardToken {
       totalSupply += mintAmount;
       addIfNewHolder(msg.sender);
     }
+
+    function() {
+      throw;
+    }
 }
