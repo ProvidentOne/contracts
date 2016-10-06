@@ -1,4 +1,4 @@
-FROM izqui/docker-truffle
+FROM unpatent/docker-truffle
 COPY . app
 WORKDIR app
 
