@@ -4,7 +4,7 @@ contract("InvestmentFund", function(accounts) {
 
     it("creation: test correct setting of vanity information", function(done) {
       var ctr;
-      InvestmentFund.new('Simon Bucks','SBX', 10000, 1, '', {from: accounts[0]}).then(function(result) {
+      InvestmentFund.new('Simon Bucks','SBX', 10000, 1, '', 3, 20, {from: accounts[0]}).then(function(result) {
           ctr = result;
           return ctr.name.call();
       }).then(function (result) {
@@ -19,7 +19,7 @@ contract("InvestmentFund", function(accounts) {
 
     it("creation: should succeed in creating over 2^256 - 1 (max) tokens", function(done) {
         //2^256 - 1
-        InvestmentFund.new('Simon Bucks','SBX', '115792089237316195423570985008687907853269984665640564039457584007913129639935', 1, '', {from: accounts[0]}).then(function(ctr) {
+        InvestmentFund.new('Simon Bucks','SBX', '115792089237316195423570985008687907853269984665640564039457584007913129639935', 1, '', 3, 20, {from: accounts[0]}).then(function(ctr) {
             return ctr.totalSupply();
     }).then(function (result) {
         var match = result.equals('1.15792089237316195423570985008687907853269984665640564039457584007913129639935e+77');
@@ -36,7 +36,7 @@ contract("InvestmentFund", function(accounts) {
     //it's not giving estimate on gas used in the event of an error.
     it("transfers: ether transfer should be reversed.", function(done) {
         var ctr;
-        InvestmentFund.new('Simon Bucks','SBX', 10000, 1, '', {from: accounts[0]}).then(function(result) {
+        InvestmentFund.new('Simon Bucks','SBX', 10000, 1, '', 3, 20, {from: accounts[0]}).then(function(result) {
             ctr = result;
             return web3.eth.sendTransaction({from: accounts[0], to: ctr.address, value: web3.toWei(1, "Ether")});
         }).catch(function(result) {
@@ -46,10 +46,8 @@ contract("InvestmentFund", function(accounts) {
 
     it("transfers: should transfer 1000 to accounts[1] with accounts[0] having 1000", function(done) {
         var ctr;
-        InvestmentFund.new('Simon Bucks','SBX', 10000, 1, '', {from: accounts[0]}).then(function(result) {
+        InvestmentFund.new('Simon Bucks','SBX', 10000, 1, '', 3, 20, {from: accounts[0]}).then(function(result) {
             ctr = result;
-            return ctr.mintToken(1000, {from: accounts[0]});
-        }).then(() => {
             return ctr.transfer(accounts[1], 100, {from: accounts[0]});
         }).then(function (result) {
             return ctr.balanceOf.call(accounts[1]);
@@ -61,13 +59,11 @@ contract("InvestmentFund", function(accounts) {
 
 
 
-    it("transfers: should fail when trying to transfer 10001 to accounts[1] with accounts[0] having 10000", function(done) {
+    it("transfers: should fail when trying to transfer 2001 to accounts[1] with accounts[0] having 10000", function(done) {
         var ctr;
-        InvestmentFund.new('Simon Bucks','SBX', 10000, 1, '', {from: accounts[0]}).then(function(result) {
+        InvestmentFund.new('Simon Bucks','SBX', 10000, 1, '', 3, 20, {from: accounts[0]}).then(function(result) {
             ctr = result;
-            return ctr.mintToken(1000, {from: accounts[0]});
-        }).then(() => {
-            return ctr.transfer(accounts[1], 1001, {from: accounts[0]});
+            return ctr.transfer(accounts[1], 2001, {from: accounts[0]});
           }).then(function (result) {
               return ctr.balanceOf.call(accounts[1]);
           }).then(function (result) {
@@ -79,10 +75,8 @@ contract("InvestmentFund", function(accounts) {
 
     it("transfers: should fail when trying to transfer zero.", function(done) {
         var ctr;
-        InvestmentFund.new('Simon Bucks','SBX', 10000, 1, '', {from: accounts[0]}).then(function(result) {
+        InvestmentFund.new('Simon Bucks','SBX', 10000, 1, '', 3, 20, {from: accounts[0]}).then(function(result) {
             ctr = result;
-            return ctr.mintToken(1000, {from: accounts[0]});
-        }).then(() => {
             return ctr.transfer.call(accounts[1], 0, {from: accounts[0]});
         }).then(function (result) {
             assert.isFalse(result);
@@ -99,10 +93,8 @@ contract("InvestmentFund", function(accounts) {
 
     it("approvals: msg.sender should approve 100 to accounts[1]", function(done) {
         var ctr = null;
-        InvestmentFund.new('Simon Bucks','SBX', 10000, 1, '', {from: accounts[0]}).then(function(result) {
+        InvestmentFund.new('Simon Bucks','SBX', 10000, 1, '', 3, 20, {from: accounts[0]}).then(function(result) {
             ctr = result;
-            return ctr.mintToken(1000, {from: accounts[0]});
-        }).then(() => {
             return ctr.approve(accounts[1], 100, {from: accounts[0]});
         }).then(function (result) {
             return ctr.allowance.call(accounts[0], accounts[1]);
@@ -116,10 +108,8 @@ contract("InvestmentFund", function(accounts) {
     //bit overkill. But is for testing a bug
     it("approvals: msg.sender approves accounts[1] of 100 & withdraws 20 once.", function(done) {
         var ctr = null;
-        InvestmentFund.new('Simon Bucks','SBX', 100000, 1, '', {from: accounts[0]}).then(function(result) {
+        InvestmentFund.new('Simon Bucks','SBX', 100000, 1, '', 3, 10, {from: accounts[0]}).then(function(result) {
             ctr = result;
-            return ctr.mintToken(10000, {from: accounts[0]});
-        }).then(() => {
             return ctr.balanceOf.call(accounts[0]);
         }).then(function (result) {
             assert.strictEqual(result.toNumber(), 10000);
@@ -153,10 +143,8 @@ contract("InvestmentFund", function(accounts) {
     //should approve 100 of msg.sender & withdraw 50, twice. (should succeed)
     it("approvals: msg.sender approves accounts[1] of 100 & withdraws 20 twice.", function(done) {
         var ctr = null;
-        InvestmentFund.new('Simon Bucks','SBX', 100000, 1, '', {from: accounts[0]}).then(function(result) {
+        InvestmentFund.new('Simon Bucks','SBX', 100000, 1, '', 3, 10, {from: accounts[0]}).then(function(result) {
             ctr = result;
-            return ctr.mintToken(10000, {from: accounts[0]});
-        }).then(() => {
             return ctr.approve(accounts[1], 100, {from: accounts[0]});
         }).then(function (result) {
             return ctr.allowance.call(accounts[0], accounts[1]);
@@ -193,10 +181,8 @@ contract("InvestmentFund", function(accounts) {
     //should approve 100 of msg.sender & withdraw 50 & 60 (should fail).
     it("approvals: msg.sender approves accounts[1] of 100 & withdraws 50 & 60 (2nd tx should fail)", function(done) {
         var ctr = null;
-        InvestmentFund.new('Simon Bucks','SBX', 100000, 1, '', {from: accounts[0]}).then(function(result) {
+        InvestmentFund.new('Simon Bucks','SBX', 100000, 1, '', 3, 10, {from: accounts[0]}).then(function(result) {
             ctr = result;
-            return ctr.mintToken(10000, {from: accounts[0]});
-        }).then(() => {
             return ctr.approve(accounts[1], 100, {from: accounts[0]});
         }).then(function (result) {
             return ctr.allowance.call(accounts[0], accounts[1]);
@@ -224,10 +210,8 @@ contract("InvestmentFund", function(accounts) {
 
     it("approvals: attempt withdrawal from acconut with no allowance (should fail)", function(done) {
         var ctr = null;
-        InvestmentFund.new('Simon Bucks','SBX', 100000, 1, '', {from: accounts[0]}).then(function(result) {
+        InvestmentFund.new('Simon Bucks','SBX', 100000, 1, '', 3, 20, {from: accounts[0]}).then(function(result) {
             ctr = result;
-            return ctr.mintToken(10000, {from: accounts[0]});
-        }).then(() => {
             return ctr.transferFrom.call(accounts[0], accounts[2], 60, {from: accounts[1]});
         }).then(function (result) {
               assert.isFalse(result);
@@ -237,10 +221,8 @@ contract("InvestmentFund", function(accounts) {
 
     it("approvals: allow accounts[1] 100 to withdraw from accounts[0]. Withdraw 60 and then approve 0 & attempt transfer.", function(done) {
         var ctr = null;
-        InvestmentFund.new('Simon Bucks','SBX', 100000, 1, '', {from: accounts[0]}).then(function(result) {
+        InvestmentFund.new('Simon Bucks','SBX', 100000, 1, '', 3, 20, {from: accounts[0]}).then(function(result) {
             ctr = result;
-            return ctr.mintToken(10000, {from: accounts[0]});
-        }).then(() => {
             return ctr.approve(accounts[1], 100, {from: accounts[0]});
         }).then(function (result) {
             return ctr.transferFrom(accounts[0], accounts[2], 60, {from: accounts[1]});
@@ -256,10 +238,8 @@ contract("InvestmentFund", function(accounts) {
 
     it("approvals: approve max (2^256 - 1)", function(done) {
         var ctr = null;
-        InvestmentFund.new('Simon Bucks','SBX', 100000, 1, '', {from: accounts[0]}).then(function(result) {
+        InvestmentFund.new('Simon Bucks','SBX', 100000, 1, '', 3, 20, {from: accounts[0]}).then(function(result) {
             ctr = result;
-            return ctr.mintToken(10000, {from: accounts[0]});
-        }).then(() => {
             return ctr.approve(accounts[1],'115792089237316195423570985008687907853269984665640564039457584007913129639935' , {from: accounts[0]});
         }).then(function (result) {
             return ctr.allowance(accounts[0], accounts[1]);

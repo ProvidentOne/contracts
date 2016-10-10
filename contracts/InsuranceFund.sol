@@ -138,7 +138,7 @@ contract InsuranceFund is Owned, Token {
       int256 balance = int256(soldPremiums) - int256(claimedMoney) - int256(accumulatedLosses);
       if (balance > 0) {
         if (address(investmentFund) != 0) {
-          if (investmentFund.sendProfitsToHolders.value(uint256(balance))()) {
+          if (investmentFund.sendProfitsToInvestors.value(uint256(balance))()) {
             soldPremiums = 0;
             claimedMoney = 0;
             accumulatedLosses = 0;

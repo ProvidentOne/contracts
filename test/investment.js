@@ -1,33 +1,30 @@
 const helpers = require('./helpers');
 
 contract('InvestmentFund', (accounts) => {
-  it("contract should own all tokens", () => {
+  it("contract should own 80% of all tokens", () => {
     var investment = InvestmentFund.deployed();
     var supply;
     return investment.totalSupply.call().then(function(s) {
       supply = s.valueOf();
       return investment.balanceOf.call(investment.address);
     }).then(function(balance) {
-      assert.isAbove(balance.valueOf(), 0, "Contract should own tokens");
-      assert.equal(balance.valueOf(), supply, "Contract doesnt own all tokens");
+      assert.equal(balance.valueOf(), supply * 0.8, "Contract doesnt own 80% tokens");
     });
   });
 
-  it("owner should be able to mint tokens", () => {
+  it("owner should not be able to mint tokens", () => {
     var investment = InvestmentFund.deployed();
     var mintAmount = 1000;
-    return investment.mintToken(mintAmount, {from:accounts[0]})
-      .then(() => {
-        return investment.balanceOf.call(accounts[0], {from:accounts[1]})
-      })
-      .then((balance) => {
-        assert.equal(balance.valueOf(), mintAmount, "Should own minted tokens");
-      });
+    return investment.mintTokens(mintAmount, {from:accounts[0]})
+    .then(function(o) { assert.fail('shouldnt have succeeded') })
+    .catch(function(e) {
+      assert.typeOf(e, 'Error')
+    });
   });
 
   it("not owners cannot mint tokens", () => {
     var investment = InvestmentFund.deployed();
-    return investment.mintToken(1002, {from:accounts[1]})
+    return investment.mintTokens(1002, {from:accounts[1]})
       .then(function(o) { assert.fail('shouldnt have succeeded') })
       .catch(function(e) {
         assert.typeOf(e, 'Error')
@@ -58,7 +55,7 @@ contract('InvestmentFund', (accounts) => {
 
   it("should split dividends proporcionally", () => {
     var investment = InvestmentFund.deployed();
-    return investment.sendProfitsToHolders({from: accounts[0], value: web3.toWei(10, 'ether')})
+    return investment.sendProfitsToInvestors({from: accounts[0], value: web3.toWei(10, 'ether')})
       .then(() => {
         return investment.dividends.call(accounts[2]);
       })

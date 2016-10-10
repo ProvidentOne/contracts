@@ -8,28 +8,60 @@ contract InvestmentFund is Owned, StandardToken {
     address public insuranceFund;
     uint8 public decimals;
 
+    uint8 public newTokenPct; // Expressed in % since you cannot express not whole numbers in solidity.
+    uint8 public holderTokensPct;
+
+    bool private mintingAllowed;
+
     uint256 public tokenSellPrice;
 
     mapping (address => uint256) public dividends;
     event Dividends(uint perToken);
+    event TokenOffering(uint tokenAmount, uint tokenPrice);
 
     function InvestmentFund(
       string tokenName,
       string tokenSymbol,
       uint256 initialSupply,
       uint256 initialTokenPrice,
-      address insuranceFundAddress
+      address insuranceFundAddress,
+      uint8 tokensIssuedPerDividendPct,
+      uint8 tokensForHolderPct
       ) {
 
       owner = msg.sender;
       name = tokenName;
       symbol = tokenSymbol;
       insuranceFund = insuranceFundAddress;
-      totalSupply = initialSupply;
-      balances[this] = initialSupply;
       tokenSellPrice = initialTokenPrice;
 
+      newTokenPct = tokensIssuedPerDividendPct;
+      holderTokensPct = tokensForHolderPct;
+
+      mintingAllowed = true;
+      mintTokens(initialSupply);
+    }
+
+    function mintTokens(uint256 newTokens) {
+      if (mintingAllowed) {
+        mintingAllowed = false;
+      } else {
+        throw;
+      }
+
+      uint256 tokensForHolder = (newTokens * holderTokensPct) / 100;
+      if (tokensForHolder > newTokens) { // wtf
+        throw;
+      }
+
+      totalSupply += newTokens;
+
+      balances[this] += newTokens - tokensForHolder;
+      balances[owner] += tokensForHolder;
       addIfNewHolder(this);
+      addIfNewHolder(owner);
+
+      TokenOffering(availableTokens(), tokenSellPrice);
     }
 
     function availableTokens() constant returns (uint256) {
@@ -51,13 +83,25 @@ contract InvestmentFund is Owned, StandardToken {
       }
     }
 
-    function sendProfitsToHolders() returns (bool) {
-      uint256 dividendPerToken = msg.value / totalSupply;
+    function sendProfitsToInvestors() returns (bool) {
+      if (msg.sender != insuranceFund && msg.sender != owner) { // Keep owner for testing purposes. Should be removed ASAP.
+        throw; // Don't allow cash injections by other entities other than the insurance fund. Can complicate things.
+      }
+
+      uint256 dividendPerToken = msg.value / (totalSupply - balances[this]); // Tokens held by contract do not participate in dividends
       for (uint i = 0; i<lastIndex; ++i) {
         address holder = tokenHolders[i];
-        dividends[holder] += balances[holder] * dividendPerToken;
+        if (holder != address(this)) {
+          dividends[holder] += balances[holder] * dividendPerToken;
+        }
       }
       Dividends(dividendPerToken);
+
+      if (msg.sender == insuranceFund) {
+        mintingAllowed = true;
+        mintTokens(totalSupply * newTokenPct / 100);
+      }
+
       return true;
     }
 
@@ -67,10 +111,8 @@ contract InvestmentFund is Owned, StandardToken {
       if (!success) { throw; }
     }
 
-    function mintToken(uint256 mintAmount) onlyOwner {
-      balances[msg.sender] += mintAmount;
-      totalSupply += mintAmount;
-      addIfNewHolder(msg.sender);
+    function changeTokenSellPrice(uint256 newPrice) onlyOwner {
+      tokenSellPrice = newPrice;
     }
 
     function() {
