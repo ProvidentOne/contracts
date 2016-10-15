@@ -11,20 +11,21 @@ contract FundFactory is Owned {
   }
 
   function deployContracts() onlyOwner {
-    insuranceFund = createInsuranceFund();
-    investmentFund = createInvestmentFund(insuranceFund);
+    InsuranceFund insuranceFundContract = createInsuranceFund();
+    insuranceFund = address(insuranceFundContract);
+    investmentFund = address(createInvestmentFund(insuranceFund));
+    insuranceFundContract.setInvestmentFundAddress(investmentFund);
+    insuranceFundContract.transferOwnership(msg.sender);
   }
 
-  function createInsuranceFund() returns (address) {
-    InsuranceFund insuranceFund = new InsuranceFund("InsFund", "INS", mockPricesInsurance());
-    insuranceFund.transferOwnership(msg.sender);
-    return address(insuranceFund);
+  function createInsuranceFund() returns (InsuranceFund) {
+    return new InsuranceFund("InsFund", "INS", mockPricesInsurance());
   }
 
   function createInvestmentFund(address insuranceFund) returns (address) {
     InvestmentFund investmentFund = new InvestmentFund("InvFund", "INV", 100000, 1 ether, insuranceFund, 100, 20);
     investmentFund.transferOwnership(msg.sender);
-    return address(investmentFund);
+    return investmentFund;
   }
 
   function mockPricesInsurance() returns (uint256[]) {

@@ -119,7 +119,9 @@ contract InsuranceFund is Owned, Token {
         uint16 n = getPlanIdentifier(insuranceType);
 
         InsuredProfile insured = insuredProfile[claimer];
-        if (balance[insuranceType][claimer] >= n && insured.plan == n && insured.finalDate >= now && insured.startDate <= now) {
+        if (balance[insuranceType][claimer] >= n
+            && insured.plan == n && insured.finalDate >= now
+            && insured.startDate <= now) {
             balance[insuranceType][claimer] -= n;
             balance[insuranceType][this] += n;
         } else {
@@ -145,6 +147,9 @@ contract InsuranceFund is Owned, Token {
           } else {
             throw;
           }
+        } else {
+          Log("No investment fund known :(");
+          throw;
         }
       } else {
         soldPremiums = 0;
