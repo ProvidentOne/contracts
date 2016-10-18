@@ -24,7 +24,5 @@ investmentFund = (insFund) => {
 module.exports = (deployer) => {
   deployer.deploy([insuranceFund()]).then(() => {
     return deployer.deploy([investmentFund(InsuranceFund.address)]);
-  }).then(() => {
-    console.log("Contract deployment finished");
   });
 };
