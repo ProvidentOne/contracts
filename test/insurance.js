@@ -31,7 +31,7 @@ contract('InsuranceFund', (accounts) => {
   it("should fail if doesn't pay enough", function() {
     var insurance = InsuranceFund.deployed();
 
-    return insurance.buyInsuranceToken(0, {from: accounts[1], value: web3.toWei(5000, 'finney')})
+    return insurance.buyInsuranceToken(0, {from: accounts[1], value: web3.toWei(500, 'finney')})
       .then(function(o) { assert.fail('shouldnt have succeeded') })
       .catch(function(e) {
         assert.typeOf(e, 'Error')
