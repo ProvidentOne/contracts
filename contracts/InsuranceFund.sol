@@ -66,6 +66,15 @@ contract InsuranceFund is Owned, Token {
         symbol = tokenSymbol;
     }
 
+    function getInsuranceProfile(address insured) constant returns
+     (uint256 plan,
+      uint256 startDate,
+      uint256 finalDate) {
+
+      InsuredProfile profile = insuredProfile[insured];
+      return (uint256(profile.plan), profile.startDate, profile.finalDate);
+    }
+
     function balanceOf(address _owner) constant returns (uint256) {
         uint256 b = 0;
         for (uint256 i=0; i<tokenTypes; ++i) {
