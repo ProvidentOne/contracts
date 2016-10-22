@@ -3,6 +3,8 @@ import "helpers/Owned.sol";
 import "tokens/Token.sol";
 import "InvestmentFund.sol";
 
+import "Claim.sol";
+
 contract InsuranceFund is Owned, Token {
     string public standard = 'InsuranceToken 0.1';
     string public name;
@@ -126,6 +128,11 @@ contract InsuranceFund is Owned, Token {
         soldPremiums += tokenPrices[tokenType];
 
         Transfer(this, msg.sender, n);
+    }
+
+    function submitClaim(address claimAddress) {
+      Claim submittedClaim = Claim(claimAddress);
+      submittedClaim.transitionState(Claim.ClaimStates.Review);
     }
 
     function transferForClaim(uint256 claimAmount, uint16 insuranceType, address claimer, address beneficiaryAddress) onlyOwner {

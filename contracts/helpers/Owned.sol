@@ -8,7 +8,6 @@ contract Owned is Logger {
     }
 
     modifier onlyOwner {
-        Log("Only owner");
         if (msg.sender != owner) { throw; }
         else _
     }
