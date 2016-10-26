@@ -3,7 +3,7 @@ insuranceFund = () => {
     InsuranceFund, // Contract
     "Insurance Fund", // Contract name
     "INS", // Token name
-    [web3.toWei(1, 'ether'), web3.toWei(2, 'ether')] // Insurance prices
+    [web3.toWei(1, 'ether'), web3.toWei(2, 'ether')], // Insurance prices
   ];
 }
 
@@ -17,7 +17,6 @@ investmentFund = (insFund) => {
     insFund, // Insurance fund address,
     3, // 3% of tokens issued every time there are dividends,
     20, // 20% of minted tokens always go to holder
-
   ];
 }
 
