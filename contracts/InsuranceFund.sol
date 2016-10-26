@@ -12,7 +12,7 @@ contract InsuranceFund is Owned, Token {
     uint16 public tokenTypes;
     uint256 public totalSupply;
 
-    uint insurancePeriod = 30 days;
+    uint insurancePeriod = 91 days;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
 
@@ -20,6 +20,9 @@ contract InsuranceFund is Owned, Token {
 
     mapping (uint16 => uint256) public tokenPrices;
     mapping (uint16 => mapping (address => uint256)) public balance;
+
+    mapping (uint256 => address) public claims;
+    uint256 private claimIndex;
 
     uint256 public soldPremiums;
     uint256 public claimedMoney;
@@ -105,7 +108,7 @@ contract InsuranceFund is Owned, Token {
         }
 
         if (delta > 0 && !msg.sender.send(uint256(delta))) {  // recursion attacks
-            throw;
+          throw;
         }
 
         n = getPlanIdentifier(tokenType);
@@ -130,9 +133,23 @@ contract InsuranceFund is Owned, Token {
         Transfer(this, msg.sender, n);
     }
 
-    function submitClaim(address claimAddress) {
+    function submitClaim(address claimAddress) returns (int) {
       Claim submittedClaim = Claim(claimAddress);
+      uint16 claimType = submittedClaim.claimType();
+      address claimer = submittedClaim.ownerAddress();
+      uint16 planId = getPlanIdentifier(claimType);
+
+      InsuredProfile insured = insuredProfile[claimer];
+      if (balance[claimType][claimer] >= planId
+          && insured.plan == planId && insured.finalDate >= now
+          && insured.startDate <= now) {
+          return -1;
+      }
+
+      claims[claimIndex] = claimAddress;
+      claimIndex += 1;
       submittedClaim.transitionState(Claim.ClaimStates.Review);
+      return int(claimIndex - 1);
     }
 
     function transferForClaim(uint256 claimAmount, uint16 insuranceType, address claimer, address beneficiaryAddress) onlyOwner {
