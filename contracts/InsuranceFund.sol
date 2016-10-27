@@ -139,6 +139,13 @@ contract InsuranceFund is Owned, Token {
         Transfer(this, msg.sender, n);
     }
 
+    function createClaim(uint16 claimType, string evidence, address beneficiary) returns (address) {
+      Claim newClaim = new Claim(claimType, evidence, this, beneficiary);
+      newClaim.transferOwnership(msg.sender);
+      submitClaim(address(newClaim));
+      return address(newClaim);
+    }
+
     function submitClaim(address claimAddress) returns (int) {
       Claim submittedClaim = Claim(claimAddress);
       uint16 claimType = submittedClaim.claimType();

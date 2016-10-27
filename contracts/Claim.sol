@@ -45,7 +45,7 @@ contract Claim {
     beneficiaryAddress = _beneficiary;
 
     currentState = ClaimStates.Created;
-    generateAllowedTransitions();
+    // generateAllowedTransitions();
   }
 
   modifier onlyState(ClaimStates _state) {
@@ -60,6 +60,10 @@ contract Claim {
       ActionNotAllowed(currentState, msg.sender);
       return;
     } else _
+  }
+
+  function transferOwnership(address newOwner) onlyAddress(ownerAddress) {
+    ownerAddress = newOwner;
   }
 
   function stateIdentifier(ClaimStates _state) private constant returns (uint256) {
