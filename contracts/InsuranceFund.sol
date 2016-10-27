@@ -1,3 +1,5 @@
+pragma solidity ^0.4.3;
+
 import "helpers/Owned.sol";
 
 import "tokens/Token.sol";
@@ -107,7 +109,7 @@ contract InsuranceFund is Owned, Token {
         investmentFund = InvestmentFund(newAddress);
     }
 
-    function buyInsuranceToken(uint16 tokenType) returns (uint16 n) {
+    function buyInsuranceToken(uint16 tokenType) payable returns (uint16 n) {
         int256 delta = int256(msg.value) - int256(tokenPrices[tokenType]);
         if (delta < 0) {
            throw;
@@ -161,7 +163,7 @@ contract InsuranceFund is Owned, Token {
 
       claims[claimIndex] = claimAddress;
       claimIndex += 1;
-      submittedClaim.transitionState(Claim.ClaimStates.Review);
+      submittedClaim.transitionState(ClaimsStateMachine.ClaimStates.Review);
       return int(claimIndex - 1);
     }
 
@@ -221,4 +223,6 @@ contract InsuranceFund is Owned, Token {
             totalSupply += mintAmount;
         }
     }
+
+    function () payable {}
 }

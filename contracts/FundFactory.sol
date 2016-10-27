@@ -1,3 +1,5 @@
+pragma solidity ^0.4.3;
+
 import "./InsuranceFund.sol";
 import "./InvestmentFund.sol";
 import "./helpers/Owned.sol";

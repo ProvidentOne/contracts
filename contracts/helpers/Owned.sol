@@ -1,3 +1,5 @@
+pragma solidity ^0.4.3;
+
 import "./Logger.sol";
 
 contract Owned is Logger {
@@ -9,7 +11,8 @@ contract Owned is Logger {
 
     modifier onlyOwner {
         if (msg.sender != owner) { throw; }
-        else _
+        else
+          _;
     }
 
     function transferOwnership(address newOwner) onlyOwner {

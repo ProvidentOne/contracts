@@ -1,11 +1,4 @@
-/*
-You should inherit from StandardToken or, for a token like you would want to
-deploy in something like Mist, see HumanStandardToken.sol.
-(This implements ONLY the standard functions and NOTHING else.
-If you deploy this, you won't have anything useful.)
-
-Implements ERC 20 Token standard: https://github.com/ethereum/EIPs/issues/20
-.*/
+pragma solidity ^0.4.3;
 
 import "./TransferableToken.sol";
 

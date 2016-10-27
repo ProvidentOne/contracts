@@ -26,6 +26,7 @@ module.exports = {
       from: "0x456CDBb2a54f24d1BdCeA2603e23Aabf09d96f51"
     },
     "testing": {
+      network_id: 2771,
       host: "localhost",
       port: 8811
     }

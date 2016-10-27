@@ -1,14 +1,9 @@
-contract Claim {
-  enum ClaimStates {
-    Created,
-    Review,
-    PendingInfo,
-    Accepted,
-    Rejected,
-    Withdrawn
-  }
+pragma solidity ^0.4.3;
 
-  ClaimStates public currentState;
+import "ClaimsStateMachine.sol";
+
+contract Claim {
+  ClaimsStateMachine.ClaimStates public currentState;
 
   uint256 public createDate;
   uint256 public modifiedDate;
@@ -22,11 +17,9 @@ contract Claim {
   uint256 public approvedPayout;
   address public beneficiaryAddress;
 
-  mapping (uint256 => mapping (uint256 => address)) private allowedTransitions;
-
-  event StateTransitionNotAllowed(ClaimStates oldState, ClaimStates newState, address originary);
-  event StateDidTransition(ClaimStates oldState, ClaimStates newState, address originary);
-  event ActionNotAllowed(ClaimStates state, address originary);
+  event StateTransitionNotAllowed(ClaimsStateMachine.ClaimStates oldState, ClaimsStateMachine.ClaimStates newState, address originary);
+  event StateDidTransition(ClaimsStateMachine.ClaimStates oldState, ClaimsStateMachine.ClaimStates newState, address originary);
+  event ActionNotAllowed(ClaimsStateMachine.ClaimStates state, address originary);
 
   function Claim(
     uint16 _type,
@@ -44,54 +37,46 @@ contract Claim {
     claimEvidence = _evidence;
     beneficiaryAddress = _beneficiary;
 
-    currentState = ClaimStates.Created;
-    // generateAllowedTransitions();
-  }
-
-  modifier onlyState(ClaimStates _state) {
-    if (currentState != _state) {
-      ActionNotAllowed(currentState, msg.sender);
-      return;
-    } else _
-  }
-
-  modifier onlyAddress(address _address) {
-    if (msg.sender != _address) {
-      ActionNotAllowed(currentState, msg.sender);
-      return;
-    } else _
+    currentState = ClaimsStateMachine.ClaimStates.Created;
   }
 
   function transferOwnership(address newOwner) onlyAddress(ownerAddress) {
     ownerAddress = newOwner;
   }
 
-  function stateIdentifier(ClaimStates _state) private constant returns (uint256) {
-    return uint256(_state) * 10 + 1; // Avoid 0s
+  modifier onlyState(ClaimsStateMachine.ClaimStates _state) {
+    if (currentState != _state) {
+      ActionNotAllowed(currentState, msg.sender);
+      return;
+    }
+    _;
   }
 
-  function generateAllowedTransitions() private constant {
-    allowedTransitions[stateIdentifier(ClaimStates.Created)][stateIdentifier(ClaimStates.Review)] = insuranceAddress;
-    allowedTransitions[stateIdentifier(ClaimStates.Review)][stateIdentifier(ClaimStates.PendingInfo)] = insuranceAddress;
-    allowedTransitions[stateIdentifier(ClaimStates.Review)][stateIdentifier(ClaimStates.Accepted)] = insuranceAddress;
-    allowedTransitions[stateIdentifier(ClaimStates.Review)][stateIdentifier(ClaimStates.Rejected)] = insuranceAddress;
-
-    allowedTransitions[stateIdentifier(ClaimStates.PendingInfo)][stateIdentifier(ClaimStates.Review)] = ownerAddress;
-    allowedTransitions[stateIdentifier(ClaimStates.Review)][stateIdentifier(ClaimStates.Withdrawn)] = ownerAddress;
-    allowedTransitions[stateIdentifier(ClaimStates.PendingInfo)][stateIdentifier(ClaimStates.Withdrawn)] = ownerAddress;
+  modifier onlyAddress(address _address) {
+    if (msg.sender != _address) {
+      ActionNotAllowed(currentState, msg.sender);
+      return;
+    }
+    _;
   }
 
-  function submitNewEvidence(string newEvidence) onlyState(ClaimStates.PendingInfo) onlyAddress(ownerAddress) {
+  function originatorType() private returns (ClaimsStateMachine.Originator) {
+    if (msg.sender == ownerAddress) { return ClaimsStateMachine.Originator.Owner; }
+    if (msg.sender == insuranceAddress) { return ClaimsStateMachine.Originator.Insurance; }
+    return ClaimsStateMachine.Originator.Any;
+  }
+
+  function submitNewEvidence(string newEvidence) onlyState(ClaimsStateMachine.ClaimStates.PendingInfo) onlyAddress(ownerAddress) {
     claimEvidence = newEvidence;
-    transitionState(ClaimStates.Review);
+    transitionState(ClaimsStateMachine.ClaimStates.Review);
   }
 
   function withdrawClaim() onlyAddress(ownerAddress) {
-    transitionState(ClaimStates.Withdrawn);
+    transitionState(ClaimsStateMachine.ClaimStates.Withdrawn);
   }
 
-  function transitionState(ClaimStates newState) {
-    if (allowedTransitions[stateIdentifier(currentState)][stateIdentifier(newState)] != msg.sender) {
+  function transitionState(ClaimsStateMachine.ClaimStates newState) {
+    if (ClaimsStateMachine.isTransitionAllowed(currentState, newState, originatorType())) {
       StateTransitionNotAllowed(currentState, newState, msg.sender);
       return;
     }

@@ -1,3 +1,5 @@
+pragma solidity ^0.4.3;
+
 import "helpers/Owned.sol";
 import "tokens/StandardToken.sol";
 
@@ -68,7 +70,7 @@ contract InvestmentFund is Owned, StandardToken {
       return balances[this];
     }
 
-    function buyTokens() {
+    function buyTokens() payable {
       uint256 tokenAmount = msg.value / tokenSellPrice;
       if (balances[this] >= tokenAmount && balances[msg.sender] + tokenAmount > balances[msg.sender])  {
         balances[msg.sender] += tokenAmount;
@@ -83,7 +85,7 @@ contract InvestmentFund is Owned, StandardToken {
       }
     }
 
-    function sendProfitsToInvestors() returns (bool) {
+    function sendProfitsToInvestors() payable returns (bool) {
       if (msg.sender != insuranceFund && msg.sender != owner) { // Keep owner for testing purposes. Should be removed ASAP.
         throw; // Don't allow cash injections by other entities other than the insurance fund. Can complicate things.
       }
