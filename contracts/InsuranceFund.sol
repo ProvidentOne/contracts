@@ -139,19 +139,17 @@ contract InsuranceFund is Owned, Token {
         soldPremiums += tokenPrices[tokenType];
 
         Transfer(this, msg.sender, n);
+
+        return n;
     }
 
-    function createClaim(uint16 claimType, string evidence, address beneficiary) returns (address) {
+    function createClaim(uint16 claimType, string evidence, address beneficiary) returns (int) {
       Claim newClaim = new Claim(claimType, evidence, this, beneficiary);
       newClaim.transferOwnership(msg.sender);
-      submitClaim(address(newClaim));
-      return address(newClaim);
+      return submitClaim(newClaim, claimType, msg.sender);
     }
 
-    function submitClaim(address claimAddress) returns (int) {
-      Claim submittedClaim = Claim(claimAddress);
-      uint16 claimType = submittedClaim.claimType();
-      address claimer = submittedClaim.ownerAddress();
+    function submitClaim(Claim submittedClaim, uint16 claimType, address claimer) returns (int) {
       uint16 planId = getPlanIdentifier(claimType);
 
       InsuredProfile insured = insuredProfile[claimer];
@@ -161,10 +159,17 @@ contract InsuranceFund is Owned, Token {
           return -1;
       }
 
-      claims[claimIndex] = claimAddress;
+      claims[claimIndex] = address(submittedClaim);
       claimIndex += 1;
       submittedClaim.transitionState(ClaimsStateMachine.ClaimStates.Review);
       return int(claimIndex - 1);
+    }
+
+    function submitClaimAddress(address claimAddress) returns (int) {
+      Claim claim = Claim(claimAddress);
+      uint16 claimType = claim.claimType();
+      address claimer = claim.ownerAddress();
+      return submitClaim(claim, claimType, claimer);
     }
 
     function transferForClaim(uint256 claimAmount, uint16 insuranceType, address claimer, address beneficiaryAddress) onlyOwner {

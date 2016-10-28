@@ -16,18 +16,18 @@ library ClaimsStateMachine {
     Any
   }
 
-  function isTransitionAllowed(ClaimStates state, ClaimStates newState, Originator originator) returns (bool) {
-    if (originator == Originator.Owner) {
-      if (state == ClaimStates.PendingInfo && newState == ClaimStates.Review) { return true; }
-      if (state == ClaimStates.Review && newState == ClaimStates.Withdrawn) { return true; }
-      if (state == ClaimStates.PendingInfo && newState == ClaimStates.Withdrawn) { return true; }
+  function isTransitionAllowed(uint state, uint newState, uint originator) constant returns (bool) {
+    if (originator == uint(Originator.Owner)) {
+      if (state == uint(ClaimStates.PendingInfo) && newState == uint(ClaimStates.Review)) { return true; }
+      if (state == uint(ClaimStates.Review) && newState == uint(ClaimStates.Withdrawn)) { return true; }
+      if (state == uint(ClaimStates.PendingInfo) && newState == uint(ClaimStates.Withdrawn)) { return true; }
     }
 
-    if (originator == Originator.Insurance) {
-      if (state == ClaimStates.Created && newState == ClaimStates.Review) { return true; }
-      if (state == ClaimStates.Review && newState == ClaimStates.PendingInfo) { return true; }
-      if (state == ClaimStates.Review && newState == ClaimStates.Accepted) { return true; }
-      if (state == ClaimStates.Review && newState == ClaimStates.Rejected) { return true; }
+    if (originator == uint(Originator.Insurance)) {
+      if (state == uint(ClaimStates.Created) && newState == uint(ClaimStates.Review)) { return true; }
+      if (state == uint(ClaimStates.Review) && newState == uint(ClaimStates.PendingInfo)) { return true; }
+      if (state == uint(ClaimStates.Review) && newState == uint(ClaimStates.Accepted)) { return true; }
+      if (state == uint(ClaimStates.Review) && newState == uint(ClaimStates.Rejected)) { return true; }
     }
 
     return false;
