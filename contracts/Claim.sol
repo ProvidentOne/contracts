@@ -95,7 +95,6 @@ contract Claim {
       if (state == uint(ClaimsStateMachine.ClaimStates.Review) && newState == uint(ClaimsStateMachine.ClaimStates.Withdrawn)) { return true; }
       if (state == uint(ClaimsStateMachine.ClaimStates.PendingInfo) && newState == uint(ClaimsStateMachine.ClaimStates.Withdrawn)) { return true; }
     }
-
     if (originator == uint(ClaimsStateMachine.Originator.Insurance)) {
       if (state == uint(ClaimsStateMachine.ClaimStates.Created) && newState == uint(ClaimsStateMachine.ClaimStates.Review)) { return true; }
       if (state == uint(ClaimsStateMachine.ClaimStates.Review) && newState == uint(ClaimsStateMachine.ClaimStates.PendingInfo)) { return true; }
