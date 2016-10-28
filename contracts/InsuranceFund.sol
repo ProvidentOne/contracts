@@ -24,7 +24,7 @@ contract InsuranceFund is Owned, Token {
     mapping (uint16 => mapping (address => uint256)) public balance;
 
     mapping (uint256 => address) public claims;
-    uint256 private claimIndex;
+    uint256 public claimIndex;
 
     uint256 public soldPremiums;
     uint256 public claimedMoney;
