@@ -17,7 +17,7 @@ contract('InsuranceFund', (accounts) => {
 
   it("should be able to buy insurance tokens", function() {
     var insurance = InsuranceFund.deployed();
-    var amount = web3.toWei(1000, 'finney');
+    var amount = web3.toWei(100, 'finney');
     return insurance.buyInsuranceToken(0, {from: accounts[0], value: amount}).then((v) => {
       return insurance.balanceOf.call(accounts[0]);
     }).then((balance) =>{
