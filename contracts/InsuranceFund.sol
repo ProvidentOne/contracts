@@ -14,9 +14,10 @@ contract InsuranceFund is Owned, Token {
     uint16 public tokenTypes;
     uint256 public totalSupply;
 
-    uint insurancePeriod = 91 days;
+    uint insurancePeriod = 30 days;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
+    event NewClaim(address claimAddress, address originator);
 
     InvestmentFund public investmentFund;
 
@@ -34,6 +35,7 @@ contract InsuranceFund is Owned, Token {
         uint16 plan;
         uint256 startDate;
         uint256 finalDate;
+        address[] claims;
     }
 
     mapping (address => InsuredProfile) public insuredProfile;
@@ -122,7 +124,7 @@ contract InsuranceFund is Owned, Token {
         n = getPlanIdentifier(tokenType);
 
         if (insuredProfile[msg.sender].startDate == 0) {
-          insuredProfile[msg.sender] = InsuredProfile({plan: n, startDate: now, finalDate: now});
+          insuredProfile[msg.sender] = InsuredProfile({plan: n, startDate: now, finalDate: now, claims: new address[](0)});
         } else {
           insuredProfile[msg.sender].plan = n;
           if (now > insuredProfile[msg.sender].finalDate) {
@@ -159,10 +161,19 @@ contract InsuranceFund is Owned, Token {
           return -1;
       }
 
+      insured.claims.push(address(submittedClaim));
+
       claims[claimIndex] = address(submittedClaim);
       claimIndex += 1;
       submittedClaim.transitionState(ClaimsStateMachine.ClaimStates.Review);
+
+      NewClaim(address(submittedClaim), claimer);
+
       return int(claimIndex - 1);
+    }
+
+    function insuredClaims(address insured) constant returns (address[]) {
+      return insuredProfile[insured].claims;
     }
 
     function submitClaimAddress(address claimAddress) returns (int) {
