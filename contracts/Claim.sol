@@ -80,11 +80,11 @@ contract Claim {
   function transitionState(ClaimsStateMachine.ClaimStates newState) {
 
     if (!isTransitionAllowed(uint(currentState), uint(newState), uint(originatorType()))) {
-      // StateTransitionNotAllowed(currentState, newState, msg.sender);
+      StateTransitionNotAllowed(currentState, newState, msg.sender);
       return;
     }
 
-    // StateDidTransition(currentState, newState, msg.sender);
+    StateDidTransition(currentState, newState, msg.sender);
     currentState = newState;
   }
 

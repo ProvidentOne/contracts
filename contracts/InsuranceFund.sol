@@ -165,9 +165,9 @@ contract InsuranceFund is Owned, Token {
 
       claims[claimIndex] = address(submittedClaim);
       claimIndex += 1;
-      submittedClaim.transitionState(ClaimsStateMachine.ClaimStates.Review);
 
       NewClaim(address(submittedClaim), claimer);
+      submittedClaim.transitionState(ClaimsStateMachine.ClaimStates.Review);
 
       return int(claimIndex - 1);
     }
