@@ -27,6 +27,9 @@ contract InsuranceFund is Owned, Token {
     mapping (uint256 => address) public claims;
     uint256 public claimIndex;
 
+    mapping (uint16 => address) public examiners;
+    uint16 private examinerIndex;
+
     uint256 public soldPremiums;
     uint256 public claimedMoney;
     uint256 public accumulatedLosses;
@@ -73,6 +76,29 @@ contract InsuranceFund is Owned, Token {
 
         name = tokenName;
         symbol = tokenSymbol;
+    }
+
+    function addExaminer(address examinerAddress) onlyOwner {
+      examiners[examinerIndex] = examinerAddress;
+      examinerIndex += 1;
+    }
+
+    function removeExaminer(address examinerAddress) onlyOwner {
+      bool foundExaminer = false;
+      for (uint16 i = 0; i<examinerIndex; i++) {
+        if (!foundExaminer && examiners[i] == examinerAddress) {
+          foundExaminer = true;
+        }
+        if (foundExaminer) {
+          if (i < examinerIndex) {
+            examiners[i] = examiners[i+1];
+          }
+        }
+      }
+
+      if (foundExaminer) {
+        examinerIndex -= 1;
+      }
     }
 
     function getInsuranceProfile(address insured) constant returns
@@ -167,9 +193,19 @@ contract InsuranceFund is Owned, Token {
       claimIndex += 1;
 
       NewClaim(address(submittedClaim), claimer);
-      submittedClaim.transitionState(ClaimsStateMachine.ClaimStates.Review);
+      submittedClaim.transitionState(Claim.ClaimStates.Review);
+      submittedClaim.assignExaminers(examinersForClaim(claimType), examinerIndex);
 
       return int(claimIndex - 1);
+    }
+
+    function examinersForClaim(uint16 claimType) returns (address[]) {
+      // right now it is the same
+      address[] memory claimExaminers = new address[](examinerIndex);
+      for (uint16 i = 0; i < examinerIndex; i++) {
+        claimExaminers[i] = examiners[i];
+      }
+      return claimExaminers;
     }
 
     function insuredClaims(address insured) constant returns (address[]) {

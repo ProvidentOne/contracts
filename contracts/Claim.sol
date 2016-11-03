@@ -1,11 +1,31 @@
 pragma solidity ^0.4.3;
 
-import "ClaimsStateMachine.sol";
-
 contract Claim {
-  using ClaimsStateMachine for ClaimsStateMachine.ClaimStates;
+  struct H {
+    uint h;
+  }
+  enum ClaimStates {
+    Created,
+    Review,
+    PendingInfo,
+    Accepted,
+    Rejected,
+    Withdrawn
+  }
 
-  ClaimsStateMachine.ClaimStates public currentState;
+  enum Originator {
+    Owner,
+    Insurance,
+    Examiner
+  }
+
+  enum ExaminerDecision {
+    Pending,
+    Reject,
+    Approve
+  }
+
+  ClaimStates public currentState;
 
   uint256 public createDate;
   uint256 public modifiedDate;
@@ -19,9 +39,15 @@ contract Claim {
   uint256 public approvedPayout;
   address public beneficiaryAddress;
 
-  event StateTransitionNotAllowed(ClaimsStateMachine.ClaimStates oldState, ClaimsStateMachine.ClaimStates newState, address originary);
-  event StateDidTransition(ClaimsStateMachine.ClaimStates oldState, ClaimsStateMachine.ClaimStates newState, address originary);
-  event ActionNotAllowed(ClaimsStateMachine.ClaimStates state, address originary);
+  mapping (uint16 => address) public examiners;
+  uint16 totalExaminers;
+  uint16 neededApprovals;
+
+  mapping (address => ExaminerDecision) examinerDecision;
+
+  event StateTransitionNotAllowed(ClaimStates oldState, ClaimStates newState, address originary);
+  event StateDidTransition(ClaimStates oldState, ClaimStates newState, address originary);
+  event ActionNotAllowed(ClaimStates state, address originary);
 
   function Claim(
     uint16 _type,
@@ -39,22 +65,23 @@ contract Claim {
     claimEvidence = _evidence;
     beneficiaryAddress = _beneficiary;
 
-    currentState = ClaimsStateMachine.ClaimStates.Created;
+    currentState = ClaimStates.Created;
   }
 
-  modifier onlyAddress(ClaimsStateMachine.Originator _originary) {
-    if (uint256(originatorType()) != uint256(_originary)) {
+  modifier onlyAddress(Originator _originary) {
+    if (isOriginatorType(_originary)) {
       ActionNotAllowed(currentState, msg.sender);
       return;
     }
     _;
   }
 
-  function transferOwnership(address newOwner) onlyAddress(ClaimsStateMachine.Originator.Owner) {
+  function transferOwnership(address newOwner)
+           onlyAddress(Originator.Owner) {
     ownerAddress = newOwner;
   }
 
-  modifier onlyState(ClaimsStateMachine.ClaimStates _state) {
+  modifier onlyState(ClaimStates _state) {
     if (currentState != _state) {
       ActionNotAllowed(currentState, msg.sender);
       return;
@@ -62,24 +89,52 @@ contract Claim {
     _;
   }
 
-  function originatorType() private returns (ClaimsStateMachine.Originator) {
-    if (msg.sender == ownerAddress) { return ClaimsStateMachine.Originator.Owner; }
-    if (msg.sender == insuranceAddress) { return ClaimsStateMachine.Originator.Insurance; }
-    return ClaimsStateMachine.Originator.Any;
+  function isOriginatorType(Originator originator) private constant returns (bool) {
+    if (originator == Originator.Owner) { return msg.sender == ownerAddress; }
+    if (originator == Originator.Insurance) { return msg.sender == insuranceAddress; }
+    if (originator == Originator.Examiner) { return isExaminer(msg.sender); }
+
+    return false;
   }
 
-  function submitNewEvidence(string newEvidence) onlyState(ClaimsStateMachine.ClaimStates.PendingInfo) onlyAddress(ClaimsStateMachine.Originator.Owner) {
+  function isExaminer(address ad) private constant returns (bool) {
+    for (uint16 i = 0; i < totalExaminers; i++) {
+      if (examiners[i] == ad) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function assignExaminers(address[] memory _examiners, uint16 _neededApprovals)
+    onlyAddress(Originator.Insurance)
+    onlyState(ClaimStates.Review) public {
+      for (uint16 i = 0; i < _examiners.length; i++) {
+        examiners[i] = _examiners[i];
+        totalExaminers += 1;
+      }
+
+      neededApprovals = _neededApprovals;
+  }
+
+  function addExaminerDecision(ExaminerDecision decision) onlyAddress(Originator.Examiner) {
+    examinerDecision[msg.sender] = decision;
+  }
+
+  function submitNewEvidence(string newEvidence)
+    onlyState(ClaimStates.PendingInfo)
+    onlyAddress(Originator.Owner) {
+
     claimEvidence = newEvidence;
-    transitionState(ClaimsStateMachine.ClaimStates.Review);
+    transitionState(ClaimStates.Review);
   }
 
-  function withdrawClaim() onlyAddress(ClaimsStateMachine.Originator.Owner) {
-    transitionState(ClaimsStateMachine.ClaimStates.Withdrawn);
+  function withdrawClaim() onlyAddress(Originator.Owner) {
+    transitionState(ClaimStates.Withdrawn);
   }
 
-  function transitionState(ClaimsStateMachine.ClaimStates newState) {
-
-    if (!isTransitionAllowed(uint(currentState), uint(newState), uint(originatorType()))) {
+  function transitionState(ClaimStates newState) {
+    if (!isTransitionAllowed(uint(currentState), uint(newState))) {
       StateTransitionNotAllowed(currentState, newState, msg.sender);
       return;
     }
@@ -88,18 +143,18 @@ contract Claim {
     currentState = newState;
   }
 
-  // TODO: Get this out of here :(
-  function isTransitionAllowed(uint state, uint newState, uint originator) constant returns (bool) {
-    if (originator == uint(ClaimsStateMachine.Originator.Owner)) {
-      if (state == uint(ClaimsStateMachine.ClaimStates.PendingInfo) && newState == uint(ClaimsStateMachine.ClaimStates.Review)) { return true; }
-      if (state == uint(ClaimsStateMachine.ClaimStates.Review) && newState == uint(ClaimsStateMachine.ClaimStates.Withdrawn)) { return true; }
-      if (state == uint(ClaimsStateMachine.ClaimStates.PendingInfo) && newState == uint(ClaimsStateMachine.ClaimStates.Withdrawn)) { return true; }
+  function isTransitionAllowed(uint state, uint newState) constant returns (bool) {
+    if (isOriginatorType(Originator.Owner)) {
+      if (state == uint(ClaimStates.PendingInfo) && newState == uint(ClaimStates.Review)) { return true; }
+      if (state == uint(ClaimStates.Review) && newState == uint(ClaimStates.Withdrawn)) { return true; }
+      if (state == uint(ClaimStates.PendingInfo) && newState == uint(ClaimStates.Withdrawn)) { return true; }
     }
-    if (originator == uint(ClaimsStateMachine.Originator.Insurance)) {
-      if (state == uint(ClaimsStateMachine.ClaimStates.Created) && newState == uint(ClaimsStateMachine.ClaimStates.Review)) { return true; }
-      if (state == uint(ClaimsStateMachine.ClaimStates.Review) && newState == uint(ClaimsStateMachine.ClaimStates.PendingInfo)) { return true; }
-      if (state == uint(ClaimsStateMachine.ClaimStates.Review) && newState == uint(ClaimsStateMachine.ClaimStates.Accepted)) { return true; }
-      if (state == uint(ClaimsStateMachine.ClaimStates.Review) && newState == uint(ClaimsStateMachine.ClaimStates.Rejected)) { return true; }
+
+    if (isOriginatorType(Originator.Insurance)) {
+      if (state == uint(ClaimStates.Created) && newState == uint(ClaimStates.Review)) { return true; }
+      if (state == uint(ClaimStates.Review) && newState == uint(ClaimStates.PendingInfo)) { return true; }
+      if (state == uint(ClaimStates.Review) && newState == uint(ClaimStates.Accepted)) { return true; }
+      if (state == uint(ClaimStates.Review) && newState == uint(ClaimStates.Rejected)) { return true; }
     }
 
     return false;

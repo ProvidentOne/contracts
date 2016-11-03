@@ -21,9 +21,10 @@ investmentFund = (insFund) => {
 }
 
 module.exports = (deployer) => {
-  deployer.deploy(ClaimsStateMachine);
-  deployer.autolink();
-  deployer.deploy([insuranceFund()]).then(() => {
-    return deployer.deploy([investmentFund(InsuranceFund.address)]);
-  });
+    Promise.resolve()
+      .then(() => {
+      return deployer.deploy([insuranceFund()]);
+    }).then(() => {
+      return deployer.deploy([investmentFund(InsuranceFund.deployed().address)]);
+    });
 };
