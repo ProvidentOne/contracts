@@ -17,7 +17,9 @@ contract InsuranceFund is Owned, Token {
     uint insurancePeriod = 30 days;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
+
     event NewClaim(address claimAddress, address originator);
+    event PayoutForClaim(address claimAddress, uint256 claimAmount);
 
     InvestmentFund public investmentFund;
 
@@ -199,8 +201,29 @@ contract InsuranceFund is Owned, Token {
       return int(claimIndex - 1);
     }
 
-    function examinersForClaim(uint16 claimType) returns (address[]) {
-      // right now it is the same
+    function submitClaimAddress(address claimAddress) returns (int) {
+      Claim claim = Claim(claimAddress);
+      uint16 claimType = claim.claimType();
+      address claimer = claim.ownerAddress();
+      return submitClaim(claim, claimType, claimer);
+    }
+
+    function transferForClaim(address claimAddress) {
+      Claim claim = Claim(claimAddress);
+      if (claim.currentState() == Claim.ClaimStates.Accepted) {
+        uint256 claimAmount = moneyForClaim(claim.claimType());
+        if (claim.sendPayout.value(claimAmount)() &&
+            claim.currentState() == Claim.ClaimStates.Payed) {
+          claimedMoney += claimAmount;
+          PayoutForClaim(claimAddress, claimAmount);
+        } else {
+          throw;
+        }
+      }
+    }
+
+    function examinersForClaim(uint16 claimType) private returns (address[]) {
+      // right now it the difference among claimTypes
       address[] memory claimExaminers = new address[](examinerIndex);
       for (uint16 i = 0; i < examinerIndex; i++) {
         claimExaminers[i] = examiners[i];
@@ -212,32 +235,8 @@ contract InsuranceFund is Owned, Token {
       return insuredProfile[insured].claims;
     }
 
-    function submitClaimAddress(address claimAddress) returns (int) {
-      Claim claim = Claim(claimAddress);
-      uint16 claimType = claim.claimType();
-      address claimer = claim.ownerAddress();
-      return submitClaim(claim, claimType, claimer);
-    }
-
-    function transferForClaim(uint256 claimAmount, uint16 insuranceType, address claimer, address beneficiaryAddress) onlyOwner {
-        uint16 n = getPlanIdentifier(insuranceType);
-
-        InsuredProfile insured = insuredProfile[claimer];
-        if (balance[insuranceType][claimer] >= n
-            && insured.plan == n && insured.finalDate >= now
-            && insured.startDate <= now) {
-            balance[insuranceType][claimer] -= n;
-            balance[insuranceType][this] += n;
-        } else {
-            throw;
-        }
-
-        if (beneficiaryAddress.send(claimAmount)) {
-            claimedMoney += claimAmount;
-            Transfer(msg.sender, this, n);
-        } else {
-            throw;
-        }
+    function moneyForClaim(uint16 claimType) constant returns (uint256) {
+      return 5 ether;
     }
 
     function performFundAccounting() public onlyOwner {

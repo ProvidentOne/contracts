@@ -1,15 +1,13 @@
 pragma solidity ^0.4.3;
 
 contract Claim {
-  struct H {
-    uint h;
-  }
   enum ClaimStates {
     Created,
     Review,
     PendingInfo,
     Accepted,
     Rejected,
+    Payed,
     Withdrawn
   }
 
@@ -38,16 +36,32 @@ contract Claim {
 
   uint256 public approvedPayout;
   address public beneficiaryAddress;
+  mapping (address => uint256) public allowance;
 
+  mapping (address => ExaminerDecision) examinerDecision;
   mapping (uint16 => address) public examiners;
   uint16 totalExaminers;
   uint16 neededApprovals;
 
-  mapping (address => ExaminerDecision) examinerDecision;
-
   event StateTransitionNotAllowed(ClaimStates oldState, ClaimStates newState, address originary);
   event StateDidTransition(ClaimStates oldState, ClaimStates newState, address originary);
   event ActionNotAllowed(ClaimStates state, address originary);
+
+  modifier onlyAddress(Originator _originary) {
+    if (isOriginatorType(_originary)) {
+      ActionNotAllowed(currentState, msg.sender);
+      return;
+    }
+    _;
+  }
+
+  modifier onlyState(ClaimStates _state) {
+    if (currentState != _state) {
+      ActionNotAllowed(currentState, msg.sender);
+      return;
+    }
+    _;
+  }
 
   function Claim(
     uint16 _type,
@@ -68,25 +82,77 @@ contract Claim {
     currentState = ClaimStates.Created;
   }
 
-  modifier onlyAddress(Originator _originary) {
-    if (isOriginatorType(_originary)) {
-      ActionNotAllowed(currentState, msg.sender);
-      return;
-    }
-    _;
+  function assignExaminers(address[] memory _examiners, uint16 _neededApprovals)
+    onlyAddress(Originator.Insurance)
+    onlyState(ClaimStates.Review) public {
+
+      for (uint16 i = 0; i < _examiners.length; i++) {
+        examiners[i] = _examiners[i];
+        totalExaminers += 1;
+      }
+
+      neededApprovals = _neededApprovals;
+  }
+
+  function addExaminerDecision(ExaminerDecision decision)
+    onlyAddress(Originator.Examiner)
+    onlyState(ClaimStates.Review) public returns (bool) {
+
+      examinerDecision[msg.sender] = decision;
+      return checkClaimDecisions();
+  }
+
+  function submitNewEvidence(string newEvidence)
+    onlyState(ClaimStates.PendingInfo)
+    onlyAddress(Originator.Owner) returns (bool) {
+
+      claimEvidence = newEvidence;
+      return transitionState(ClaimStates.Review);
   }
 
   function transferOwnership(address newOwner)
-           onlyAddress(Originator.Owner) {
-    ownerAddress = newOwner;
+    onlyAddress(Originator.Owner) returns (bool) {
+
+      ownerAddress = newOwner;
+      return true;
   }
 
-  modifier onlyState(ClaimStates _state) {
-    if (currentState != _state) {
-      ActionNotAllowed(currentState, msg.sender);
-      return;
+  function sendPayout()
+    onlyState(ClaimStates.Accepted)
+    onlyAddress(Originator.Insurance)
+    payable returns (bool) {
+
+      approvedPayout = msg.value;
+      allowance[beneficiaryAddress] = msg.value;
+      return transitionState(ClaimStates.Payed);
+  }
+
+  function withdraw(uint256 amount) {
+    if (allowance[msg.sender] >= amount && msg.sender.send(amount)) {
+      allowance[msg.sender] -= amount;
+    } else {
+      throw;
     }
-    _;
+  }
+
+  function createAllowance(uint256 amount, address allowedAddress) {
+    if (allowance[msg.sender] >= amount) {
+      allowance[msg.sender] -= amount;
+      allowance[allowedAddress] += amount;
+    } else {
+      throw;
+    }
+  }
+
+  function transitionState(ClaimStates newState) returns (bool) {
+    if (!isTransitionAllowed(uint(currentState), uint(newState))) {
+      StateTransitionNotAllowed(currentState, newState, msg.sender);
+      return false;
+    }
+
+    StateDidTransition(currentState, newState, msg.sender);
+    currentState = newState;
+    return true;
   }
 
   function isOriginatorType(Originator originator) private constant returns (bool) {
@@ -106,41 +172,44 @@ contract Claim {
     return false;
   }
 
-  function assignExaminers(address[] memory _examiners, uint16 _neededApprovals)
-    onlyAddress(Originator.Insurance)
-    onlyState(ClaimStates.Review) public {
-      for (uint16 i = 0; i < _examiners.length; i++) {
-        examiners[i] = _examiners[i];
-        totalExaminers += 1;
-      }
-
-      neededApprovals = _neededApprovals;
-  }
-
-  function addExaminerDecision(ExaminerDecision decision) onlyAddress(Originator.Examiner) {
-    examinerDecision[msg.sender] = decision;
-  }
-
-  function submitNewEvidence(string newEvidence)
-    onlyState(ClaimStates.PendingInfo)
-    onlyAddress(Originator.Owner) {
-
-    claimEvidence = newEvidence;
-    transitionState(ClaimStates.Review);
-  }
-
-  function withdrawClaim() onlyAddress(Originator.Owner) {
-    transitionState(ClaimStates.Withdrawn);
-  }
-
-  function transitionState(ClaimStates newState) {
-    if (!isTransitionAllowed(uint(currentState), uint(newState))) {
-      StateTransitionNotAllowed(currentState, newState, msg.sender);
-      return;
+  function checkClaimDecisions() private returns (bool) {
+    if (hasBeenApproved()) {
+      return transitionState(ClaimStates.Accepted);
     }
 
-    StateDidTransition(currentState, newState, msg.sender);
-    currentState = newState;
+    if (hasBeenRejected()) {
+      return transitionState(ClaimStates.Rejected);
+    }
+
+    return true;
+  }
+
+  function hasBeenApproved() private returns (bool) {
+    uint16 total; uint16 approves; uint16 rejects;
+    (total, approves, rejects) = getExaminerDecisions();
+
+    return approves >= neededApprovals;
+  }
+
+  function hasBeenRejected() private returns (bool) {
+    uint16 total; uint16 approves; uint16 rejects;
+    (total, approves, rejects) = getExaminerDecisions();
+
+    return total - rejects < neededApprovals;
+  }
+
+  function getExaminerDecisions() private constant returns (uint16 _totalExaminers, uint16 _approvals, uint16 _rejections) {
+    _totalExaminers = totalExaminers;
+    for (uint16 i = 0; i < totalExaminers; i++) {
+      ExaminerDecision decision = examinerDecision[i];
+      if (decision == ExaminerDecision.Approve) {
+        _approvals += 1;
+      }
+      if (decision == ExaminerDecision.Reject) {
+        _rejections += 1;
+      }
+    }
+    return;
   }
 
   function isTransitionAllowed(uint state, uint newState) constant returns (bool) {
@@ -153,8 +222,16 @@ contract Claim {
     if (isOriginatorType(Originator.Insurance)) {
       if (state == uint(ClaimStates.Created) && newState == uint(ClaimStates.Review)) { return true; }
       if (state == uint(ClaimStates.Review) && newState == uint(ClaimStates.PendingInfo)) { return true; }
-      if (state == uint(ClaimStates.Review) && newState == uint(ClaimStates.Accepted)) { return true; }
-      if (state == uint(ClaimStates.Review) && newState == uint(ClaimStates.Rejected)) { return true; }
+      if (state == uint(ClaimStates.Accepted) && newState == uint(ClaimStates.Payed)) { return true; }
+    }
+
+    if (isOriginatorType(Originator.Examiner)) {
+      if (state == uint(ClaimStates.Review) && newState == uint(ClaimStates.Accepted)) {
+        return hasBeenApproved();
+      }
+      if (state == uint(ClaimStates.Review) && newState == uint(ClaimStates.Rejected)) {
+        return hasBeenRejected();
+      }
     }
 
     return false;
