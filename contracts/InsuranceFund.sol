@@ -1,30 +1,28 @@
 pragma solidity ^0.4.3;
 
 import "helpers/Owned.sol";
-
-import "tokens/Token.sol";
 import "InvestmentFund.sol";
 
 import "Claim.sol";
 
-contract InsuranceFund is Owned, Token {
-    string public standard = 'InsuranceToken 0.1';
-    string public name;
-    string public symbol;
-    uint16 public tokenTypes;
-    uint256 public totalSupply;
+contract InsuranceFund is Owned {
+    struct InsuredProfile {
+        uint16 plan;
+        uint256 startDate;
+        uint256 finalDate;
+        address[] claims;
+    }
+    mapping (address => InsuredProfile) private insuredProfile;
 
     uint insurancePeriod = 30 days;
 
-    event Transfer(address indexed from, address indexed to, uint256 value);
-
-    event NewClaim(address claimAddress, address originator);
-    event PayoutForClaim(address claimAddress, uint256 claimAmount);
+    mapping (uint16 => uint256) public planPrices;
+    uint16 public planTypes;
 
     InvestmentFund public investmentFund;
-
-    mapping (uint16 => uint256) public tokenPrices;
-    mapping (uint16 => mapping (address => uint256)) public balance;
+    uint256 public soldPremiums;
+    uint256 public claimedMoney;
+    uint256 public accumulatedLosses;
 
     mapping (uint256 => address) public claims;
     uint256 public claimIndex;
@@ -32,52 +30,30 @@ contract InsuranceFund is Owned, Token {
     mapping (uint16 => address) public examiners;
     uint16 private examinerIndex;
 
-    uint256 public soldPremiums;
-    uint256 public claimedMoney;
-    uint256 public accumulatedLosses;
+    event InsuranceBought(address insured, uint16 insuranceType);
+    event NewClaim(address claimAddress, address originator);
+    event PayoutForClaim(address claimAddress, uint256 claimAmount);
 
-    struct InsuredProfile {
-        uint16 plan;
-        uint256 startDate;
-        uint256 finalDate;
-        address[] claims;
-    }
-
-    mapping (address => InsuredProfile) public insuredProfile;
-
-    function InsuranceFund(
-        string tokenName,
-        string tokenSymbol,
-        uint256[] initialTokenPrices
-        ) {
+    function InsuranceFund(uint256[] initialPlanPrices) {
         owner = msg.sender;
 
-        uint256 initialSupplyPerToken = uint256(2**256 - 1);
-        if (initialTokenPrices.length == 0) {
-          uint256[] memory prices = new uint[](2);
-          prices[0] = 1000;
-          prices[1] = 10000;
-          setup(1000, "", "", prices);
+        if (initialPlanPrices.length > 0) {
+          addInsurancePlans(initialPlanPrices);
         } else {
-          setup(initialSupplyPerToken, tokenName, tokenSymbol, initialTokenPrices);
+          uint256[] memory prices = new uint[](3);
+          prices[0] = 1 ether;
+          prices[1] = 2 ether;
+          prices[2] = 3 ether;
+
+          addInsurancePlans(prices);
         }
     }
 
-    function setup(
-      uint256 initialSupplyPerToken,
-      string tokenName,
-      string tokenSymbol,
-      uint256[] initialTokenPrices
-      ) {
-        for (uint16 i=0; i<initialTokenPrices.length; ++i) {
-          balance[i][this] = initialSupplyPerToken;
-          tokenPrices[i] = initialTokenPrices[i];
-          totalSupply += initialSupplyPerToken;
-          tokenTypes += 1;
+    function addInsurancePlans(uint256[] initialPlanPrices) {
+        for (uint16 i=planTypes; i<(planTypes+initialPlanPrices.length); ++i) {
+          planPrices[i] = initialPlanPrices[i];
+          planTypes += 1;
         }
-
-        name = tokenName;
-        symbol = tokenSymbol;
     }
 
     function addExaminer(address examinerAddress) onlyOwner {
@@ -122,16 +98,8 @@ contract InsuranceFund is Owned, Token {
       (plan, b, c) = getInsuranceProfile(insured);
     }
 
-    function balanceOf(address _owner) constant returns (uint256) {
-        uint256 b = 0;
-        for (uint256 i=0; i<tokenTypes; ++i) {
-            b += balance[uint16(i)][_owner];
-        }
-        return b;
-    }
-
-    function getPlanIdentifier(uint16 tokenType) constant returns (uint16) {
-      return 1 + 100 * tokenType;
+    function getPlanIdentifier(uint16 planType) constant returns (uint16) {
+      return 1 + 100 * planType;
     }
 
     function setInvestmentFundAddress(address newAddress) onlyOwner {
@@ -139,17 +107,17 @@ contract InsuranceFund is Owned, Token {
         investmentFund = InvestmentFund(newAddress);
     }
 
-    function buyInsuranceToken(uint16 tokenType) payable returns (uint16 n) {
-        int256 delta = int256(msg.value) - int256(tokenPrices[tokenType]);
+    function buyInsurancePlan(uint16 planType) payable returns (bool) {
+        int256 delta = int256(msg.value) - int256(planPrices[planType]);
         if (delta < 0) {
-           throw;
+           return false;
         }
 
-        if (delta > 0 && !msg.sender.send(uint256(delta))) {  // recursion attacks
+        if (delta > 0 && !msg.sender.send(uint256(delta))) {  // return remaining money
           throw;
         }
 
-        n = getPlanIdentifier(tokenType);
+        uint16 n = getPlanIdentifier(planType);
 
         if (insuredProfile[msg.sender].startDate == 0) {
           insuredProfile[msg.sender] = InsuredProfile({plan: n, startDate: now, finalDate: now, claims: new address[](0)});
@@ -163,14 +131,11 @@ contract InsuranceFund is Owned, Token {
 
         insuredProfile[msg.sender].finalDate += insurancePeriod;
 
-        if (balance[tokenType][this] < n) { throw; }
-        balance[tokenType][this] -= n;
-        balance[tokenType][msg.sender] = n;
-        soldPremiums += tokenPrices[tokenType];
+        soldPremiums += planPrices[planType];
 
-        Transfer(this, msg.sender, n);
+        InsuranceBought(msg.sender, n);
 
-        return n;
+        return true;
     }
 
     function createClaim(uint16 claimType, string evidence, address beneficiary) returns (int) {
@@ -183,8 +148,7 @@ contract InsuranceFund is Owned, Token {
       uint16 planId = getPlanIdentifier(claimType);
 
       InsuredProfile insured = insuredProfile[claimer];
-      if (balance[claimType][claimer] >= planId
-          && insured.plan == planId && insured.finalDate >= now
+      if (insured.plan == planId && insured.finalDate >= now
           && insured.startDate <= now) {
           return -1;
       }
@@ -259,20 +223,6 @@ contract InsuranceFund is Owned, Token {
         claimedMoney = 0;
         accumulatedLosses = uint256(-balance);
       }
-    }
-
-    function addTokenType(uint256 newTokenPrice, uint256 mintAmount) onlyOwner {
-        tokenTypes += 1;
-        tokenPrices[tokenTypes] = newTokenPrice;
-        balance[tokenTypes][this] = mintAmount;
-        totalSupply += mintAmount;
-    }
-
-    function mintToken(uint256 mintAmount) onlyOwner {
-        for (uint16 i=0; i<tokenTypes; ++i) {
-            balance[i][this] += mintAmount;
-            totalSupply += mintAmount;
-        }
     }
 
     function () payable {}
