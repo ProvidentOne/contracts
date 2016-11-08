@@ -87,7 +87,7 @@ contract InvestmentService is Managed("Investment"), StandardToken {
       }
     }
 
-    function sendProfitsToInvestors() payable onlyManager returns (bool) {
+    function sendProfitsToInvestors() payable requiresPermission(PermissionLevel.Manager) returns (bool) {
 
       uint256 dividendPerToken = msg.value / (totalSupply - balances[this]); // Tokens held by contract do not participate in dividends
       for (uint i = 0; i<lastIndex; ++i) {
@@ -110,7 +110,7 @@ contract InvestmentService is Managed("Investment"), StandardToken {
       if (!success) { throw; }
     }
 
-    function changeTokenSellPrice(uint256 newPrice) onlyManager {
+    function changeTokenSellPrice(uint256 newPrice) requiresPermission(PermissionLevel.Manager) {
       tokenSellPrice = newPrice;
     }
 

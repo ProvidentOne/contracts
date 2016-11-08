@@ -40,6 +40,14 @@ contract InsuranceService is Managed('InsuranceService') {
       persistance().setInsurancePlans(plans);
     }
 
+    function getPlanCount() requiresPermission(PermissionLevel.Read) constant returns (uint16) {
+      return persistance().planTypes();
+    }
+
+    function getPlanPrice(uint16 plan) requiresPermission(PermissionLevel.Read) constant returns (uint256) {
+      return persistance().planPrices(plan);
+    }
+
     function addExaminer(address examinerAddress) requiresPermission(PermissionLevel.Manager) {
       examiners[examinerIndex] = examinerAddress;
       examinerIndex += 1;

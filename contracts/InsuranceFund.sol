@@ -1,24 +1,19 @@
 pragma solidity ^0.4.3;
 
+import "./Insurance.sol";
+
 import "services/InsuranceService.sol";
 import "services/InvestmentService.sol";
+
 import "helpers/Owned.sol";
 import "helpers/Managed.sol";
 
-contract InsuranceFund is Manager {
+contract InsuranceFund is Insurance, Manager {
   bool isBootstraped;
 
   function InsuranceFund() {
     owner = msg.sender;
     isBootstraped = false;
-  }
-
-  function good() returns (uint16){
-    if (isBootstraped) {
-      return 508;
-    } else {
-      return 12;
-    }
   }
 
   function bootstrapInsurance() onlyOwner {
@@ -37,6 +32,14 @@ contract InsuranceFund is Manager {
     addService(address(createInvestmentService()));
 
     isBootstraped = true;
+  }
+
+  function getNumberOfInsurancePlans() constant public returns (uint16) {
+    return InsuranceService(addressFor('InsuranceService')).getPlanCount();
+  }
+
+  function getInsurancePlanPrice(uint16 plan) constant public returns (uint256) {
+    return InsuranceService(addressFor('InsuranceService')).getPlanPrice(plan);
   }
 
   function getInitialInsurancePrices(uint16 k) constant returns (uint256[]) {
