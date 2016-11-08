@@ -48,6 +48,14 @@ contract InsuranceService is Managed('InsuranceService') {
       return persistance().planPrices(plan);
     }
 
+    function getInitialInsurancePrices(uint16 k) constant private returns (uint256[]) {
+      uint256[] memory prices = new uint256[](k);
+      for (uint16 i=0; i < k; i++) {
+        prices[i] = uint256(i + 1) * 2 ether;
+      }
+      return prices;
+    }
+
     function addExaminer(address examinerAddress) requiresPermission(PermissionLevel.Manager) {
       examiners[examinerIndex] = examinerAddress;
       examinerIndex += 1;
