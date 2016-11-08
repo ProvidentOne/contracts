@@ -1,6 +1,6 @@
 pragma solidity ^0.4.3;
 
-contract Insurance {
+contract Provident {
   // Insurer related
   function getNumberOfInsurancePlans() constant public returns (uint16);
   function getInsurancePlanPrice(uint16 plan) constant public returns (uint256);
