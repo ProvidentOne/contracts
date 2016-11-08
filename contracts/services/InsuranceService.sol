@@ -3,8 +3,9 @@ pragma solidity ^0.4.3;
 import "../Claim.sol";
 import "./InvestmentService.sol";
 import "../helpers/Managed.sol";
+import "../persistance/InsurancePersistance.sol";
 
-contract InsuranceService is Managed('Insurance') {
+contract InsuranceService is Managed('InsuranceService') {
     struct InsuredProfile {
         uint16 plan;
         uint256 startDate;
@@ -32,33 +33,19 @@ contract InsuranceService is Managed('Insurance') {
     event NewClaim(address claimAddress, address originator);
     event PayoutForClaim(address claimAddress, uint256 claimAmount);
 
-    function InsuranceService(uint256[] initialPlanPrices) {
-        if (initialPlanPrices.length > 0) {
-          addInsurancePlans(initialPlanPrices);
-        } else {
-          uint256[] memory prices = new uint256[](3);
-          prices[0] = 1 ether;
-          prices[1] = 2 ether;
-          prices[2] = 3 ether;
-
-          addInsurancePlans(prices);
-        }
+    function InsuranceService() {
     }
 
-    function addInsurancePlans(uint256[] initialPlanPrices) {
-      planTypes += 0;
-      for (uint16 i=0; i<initialPlanPrices.length; ++i) {
-        planPrices[i] = initialPlanPrices[i];
-        planTypes += 1;
-      }
+    function setInsurancePlans(uint256[] plans) requiresPermission(PermissionLevel.Write) {
+      persistance().setInsurancePlans(plans);
     }
 
-    function addExaminer(address examinerAddress) onlyManager {
+    function addExaminer(address examinerAddress) requiresPermission(PermissionLevel.Manager) {
       examiners[examinerIndex] = examinerAddress;
       examinerIndex += 1;
     }
 
-    function removeExaminer(address examinerAddress) onlyManager {
+    function removeExaminer(address examinerAddress) requiresPermission(PermissionLevel.Manager) {
       bool foundExaminer = false;
       for (uint16 i = 0; i<examinerIndex; i++) {
         if (!foundExaminer && examiners[i] == examinerAddress) {
@@ -195,7 +182,7 @@ contract InsuranceService is Managed('Insurance') {
       return 5 ether;
     }
 
-    function performFundAccounting() public onlyManager {
+    function performFundAccounting() public requiresPermission(PermissionLevel.Manager) {
       int256 balance = int256(soldPremiums) - int256(claimedMoney) - int256(accumulatedLosses);
       if (balance > 0) {
           if (InvestmentService(addressFor('Investment')).sendProfitsToInvestors.value(uint256(balance))()) {
@@ -210,6 +197,10 @@ contract InsuranceService is Managed('Insurance') {
         claimedMoney = 0;
         accumulatedLosses = uint256(-balance);
       }
+    }
+
+    function persistance() constant private returns (InsurancePersistance) {
+      return InsurancePersistance(addressFor('InsuranceDB'));
     }
 
     function () payable {}

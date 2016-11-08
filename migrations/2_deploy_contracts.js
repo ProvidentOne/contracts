@@ -1,6 +1,7 @@
 module.exports = (deployer) => {
   deployer.deploy(InsuranceFund)
-    .then((fund) => {
-      InsuranceFund.deployed().bootstrapInsurance({gas: 4500000});
-    });
+  .then(()=> {
+    InsuranceFund.deployed().bootstrapInsurance({gas: 4700000})
+  })
+  .catch((e) => { console.log('FUCKKK', e) })
 };

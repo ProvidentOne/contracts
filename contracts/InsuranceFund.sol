@@ -4,59 +4,47 @@ import "services/InsuranceService.sol";
 import "services/InvestmentService.sol";
 import "helpers/Owned.sol";
 import "helpers/Managed.sol";
-import "helpers/Manager.sol";
 
-contract InsuranceFund is Owned, Manager {
-  bool isDeployed;
-
-  mapping (bytes32 => address) private services;
-  mapping (bytes32 => address) private persistance;
-
-  address public insurance;
+contract InsuranceFund is Manager {
+  bool isBootstraped;
 
   function InsuranceFund() {
     owner = msg.sender;
-    isDeployed = false;
+    isBootstraped = false;
+  }
+
+  function good() returns (uint16){
+    if (isBootstraped) {
+      return 508;
+    } else {
+      return 12;
+    }
   }
 
   function bootstrapInsurance() onlyOwner {
-    if (isDeployed) {
+    if (isBootstraped) {
       throw;
     }
 
-    setService(address(createInsuranceService()));
-    setService(address(createInvestmentService()));
+    InsurancePersistance insuranceDB = new InsurancePersistance();
+    addPersistance(address(insuranceDB));
 
-    isDeployed = true;
+    InsuranceService insuranceService = new InsuranceService();
+    insuranceDB.assignPermission(address(insuranceService), Managed.PermissionLevel.Write);
+    insuranceService.setInsurancePlans(getInitialInsurancePrices(3));
+
+    addService(address(insuranceService));
+    addService(address(createInvestmentService()));
+
+    isBootstraped = true;
   }
 
-  function setService(address newService) {
-    Managed service = Managed(newService);
-    bytes32 h = service.identifier();
-    if (services[h] != 0x0) {
-      service.destroy();
+  function getInitialInsurancePrices(uint16 k) constant returns (uint256[]) {
+    uint256[] memory prices = new uint256[](k);
+    for (uint16 i=0; i<k; i++) {
+      prices[i] = uint256(i) * 1 ether;
     }
-    services[h] = newService;
-  }
-
-  function addressFor(string identifier) constant returns (address) {
-    return addressForHash(sha3(identifier));
-  }
-
-  function addressForHash(bytes32 h) constant returns (address) {
-    if (services[h] != 0x0) {
-      return services[h];
-    }
-
-    if (persistance[h] != 0x0) {
-      return persistance[h];
-    }
-
-    throw;
-  }
-
-  function createInsuranceService() returns (InsuranceService) {
-    return new InsuranceService(new uint256[](0));
+    return prices;
   }
 
   function createInvestmentService() returns (InvestmentService) {

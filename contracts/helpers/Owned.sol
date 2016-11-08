@@ -1,8 +1,6 @@
 pragma solidity ^0.4.3;
 
-import "./Logger.sol";
-
-contract Owned is Logger {
+contract Owned {
     address public owner;
 
     function owned() {
