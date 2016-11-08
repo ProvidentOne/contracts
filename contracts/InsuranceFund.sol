@@ -1,6 +1,6 @@
 pragma solidity ^0.4.3;
 
-import "./Insurance.sol";
+import "./Provident.sol";
 
 import "services/InsuranceService.sol";
 import "services/InvestmentService.sol";
@@ -8,7 +8,8 @@ import "services/InvestmentService.sol";
 import "helpers/Owned.sol";
 import "helpers/Managed.sol";
 
-contract InsuranceFund is Insurance, Manager {
+
+contract InsuranceFund is Manager { // is Provident (Solidity compiler bug)
   bool isBootstraped;
 
   function InsuranceFund() {
@@ -44,8 +45,8 @@ contract InsuranceFund is Insurance, Manager {
 
   function getInitialInsurancePrices(uint16 k) constant returns (uint256[]) {
     uint256[] memory prices = new uint256[](k);
-    for (uint16 i=0; i<k; i++) {
-      prices[i] = uint256(i) * 1 ether;
+    for (uint16 i=0; i < k; i++) {
+      prices[i] = uint256(i + 1) * 2 ether;
     }
     return prices;
   }

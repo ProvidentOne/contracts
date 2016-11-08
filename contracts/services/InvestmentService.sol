@@ -88,7 +88,6 @@ contract InvestmentService is Managed("Investment"), StandardToken {
     }
 
     function sendProfitsToInvestors() payable requiresPermission(PermissionLevel.Manager) returns (bool) {
-
       uint256 dividendPerToken = msg.value / (totalSupply - balances[this]); // Tokens held by contract do not participate in dividends
       for (uint i = 0; i<lastIndex; ++i) {
         address holder = tokenHolders[i];
