@@ -1,8 +1,8 @@
 const helpers = require('./helpers');
 
-contract('InvestmentFund', (accounts) => {
+contract('InvestmentService', (accounts) => {
   it("contract should own 80% of all tokens", () => {
-    var investment = InvestmentFund.deployed();
+    var investment = InvestmentService.deployed();
     var supply;
     return investment.totalSupply.call().then(function(s) {
       supply = s.valueOf();
@@ -13,7 +13,7 @@ contract('InvestmentFund', (accounts) => {
   });
 
   it("owner should not be able to mint tokens", () => {
-    var investment = InvestmentFund.deployed();
+    var investment = InvestmentService.deployed();
     var mintAmount = 1000;
     return investment.mintTokens(mintAmount, {from:accounts[0]})
     .then(function(o) { assert.fail('shouldnt have succeeded') })
@@ -23,7 +23,7 @@ contract('InvestmentFund', (accounts) => {
   });
 
   it("not owners cannot mint tokens", () => {
-    var investment = InvestmentFund.deployed();
+    var investment = InvestmentService.deployed();
     return investment.mintTokens(1002, {from:accounts[1]})
       .then(function(o) { assert.fail('shouldnt have succeeded') })
       .catch(function(e) {
@@ -32,7 +32,7 @@ contract('InvestmentFund', (accounts) => {
   });
 
   it("investors should be able to buy tokens", () => {
-    var investment = InvestmentFund.deployed();
+    var investment = InvestmentService.deployed();
     var buyingTokens = 3;
     var tokenPrice = web3.toWei(buyingTokens + 0.9, 'ether');
     return investment.buyTokens({from: accounts[2], value: tokenPrice})
@@ -45,7 +45,7 @@ contract('InvestmentFund', (accounts) => {
   });
 
   it("shouldn't issue tokens if not enough money is sent", () => {
-    var investment = InvestmentFund.deployed();
+    var investment = InvestmentService.deployed();
     return investment.buyTokens({from: accounts[2], value: web3.toWei(0.9, 'ether')})
       .then(function(o) { assert.fail('shouldnt have succeeded') })
       .catch(function(e) {
@@ -54,7 +54,7 @@ contract('InvestmentFund', (accounts) => {
   });
 
   it("should split dividends proporcionally", () => {
-    var investment = InvestmentFund.deployed();
+    var investment = InvestmentService.deployed();
     return investment.sendProfitsToInvestors({from: accounts[0], value: web3.toWei(10, 'ether')})
       .then(() => {
         return investment.dividends.call(accounts[2]);
@@ -65,7 +65,7 @@ contract('InvestmentFund', (accounts) => {
   });
 
   it("should be able to withdraw", () => {
-    var investment = InvestmentFund.deployed();
+    var investment = InvestmentService.deployed();
     var initialBalance;
     var dividendAmount;
     return investment.dividends.call(accounts[2])

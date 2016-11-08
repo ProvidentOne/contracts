@@ -1,8 +1,8 @@
 const helpers = require('./helpers');
 
-contract('InsuranceFund', (accounts) => {
+contract('InsuranceService', (accounts) => {
   it("should have all tokens", function() {
-    var insurance = InsuranceFund.deployed();
+    var insurance = InsuranceService.deployed();
 
     var supply;
 
@@ -16,7 +16,7 @@ contract('InsuranceFund', (accounts) => {
   });
 
   it("should be able to buy insurance tokens", function() {
-    var insurance = InsuranceFund.deployed();
+    var insurance = InsuranceService.deployed();
     var amount = web3.toWei(1000, 'finney');
     return insurance.buyInsuranceToken(0, {from: accounts[0], value: amount}).then((v) => {
       return insurance.balanceOf.call(accounts[0]);
@@ -29,7 +29,7 @@ contract('InsuranceFund', (accounts) => {
   });
 
   it("should fail if doesn't pay enough", function() {
-    var insurance = InsuranceFund.deployed();
+    var insurance = InsuranceService.deployed();
 
     return insurance.buyInsuranceToken(0, {from: accounts[1], value: web3.toWei(500, 'finney')})
       .then(function(o) { assert.fail('shouldnt have succeeded') })
@@ -39,7 +39,7 @@ contract('InsuranceFund', (accounts) => {
   });
 
   it("should create token type", function() {
-    var insurance = InsuranceFund.deployed();
+    var insurance = InsuranceService.deployed();
 
     var initialTypes;
 
@@ -54,7 +54,7 @@ contract('InsuranceFund', (accounts) => {
   });
 
   it("should be able to claim if it is token holder", function(){
-    var insurance = InsuranceFund.deployed();
+    var insurance = InsuranceService.deployed();
     var amount = web3.toWei(1000, 'finney');
     var claimAmount = web3.toWei(10, 'finney');
     var tokenPlan = web3.toBigNumber(0);

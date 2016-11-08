@@ -17,9 +17,9 @@ contract('FundFactory', (accounts) => {
     var factory;
     deployedFactory(accounts[0]).then((contract) => {
       factory = contract;
-      return factory.insuranceFund.call();
+      return factory.insuranceService.call();
     }).then((insuranceAddress) => {
-      return InsuranceFund.at(insuranceAddress).owner.call({from: accounts[1]})
+      return InsuranceService.at(insuranceAddress).owner.call({from: accounts[1]})
     }).then((owner) => {
       assert.equal(owner, accounts[0]);
       done();
@@ -31,9 +31,9 @@ contract('FundFactory', (accounts) => {
     deployedFactory(accounts[0])
       .then((contract) => {
       factory = contract;
-      return factory.investmentFund.call();
+      return factory.investmentService.call();
     }).then((investmentAddress) => {
-      return InvestmentFund.at(investmentAddress).owner.call({from: accounts[1]})
+      return InvestmentService.at(investmentAddress).owner.call({from: accounts[1]})
     }).then((owner) => {
       assert.equal(owner, accounts[0]);
       done();
@@ -42,17 +42,17 @@ contract('FundFactory', (accounts) => {
 
   it("investment fund sends money to insurance fund on token sell", (done) => {
     var factory;
-    var investmentFund;
+    var investmentService;
 
     var investmentAmount = web3.toWei(3, 'ether');
     deployedFactory(accounts[0]).then((contract) => {
       factory = contract;
-      return factory.investmentFund.call();
+      return factory.investmentService.call();
     }).then((investmentAddress) => {
-      investmentFund = InvestmentFund.at(investmentAddress);
-      return investmentFund.buyTokens({from: accounts[1], value: investmentAmount});
+      investmentService = InvestmentService.at(investmentAddress);
+      return investmentService.buyTokens({from: accounts[1], value: investmentAmount});
     }).then(() => {
-      return factory.insuranceFund.call();
+      return factory.insuranceService.call();
     }).then((insuranceAddress) => {
       return helpers.getBalance(insuranceAddress);
     }).then((balance) => {
@@ -63,29 +63,29 @@ contract('FundFactory', (accounts) => {
 
   it("insurance fund should send money to investment fund when period ends", (done) => {
     var factory;
-    var insuranceFund;
-    var investmentFund;
+    var insuranceService;
+    var investmentService;
 
     deployedFactory(accounts[0]).then((contract) => {
       factory = contract;
-      return factory.investmentFund.call();
+      return factory.investmentService.call();
     }).then((investmentAddress) => {
-      investmentFund = InvestmentFund.at(investmentAddress);
-      return investmentFund.buyTokens({from: accounts[1], value: web3.toWei(3, 'ether')});
+      investmentService = InvestmentService.at(investmentAddress);
+      return investmentService.buyTokens({from: accounts[1], value: web3.toWei(3, 'ether')});
     }).then(() => {
-      return factory.insuranceFund.call();
+      return factory.insuranceService.call();
     }).then((insuranceAddress) => {
-      insuranceFund = InsuranceFund.at(insuranceAddress)
-      return insuranceFund.buyInsuranceToken(0, {value: web3.toWei(1, 'ether'), from: accounts[2]})
+      insuranceService = InsuranceService.at(insuranceAddress)
+      return insuranceService.buyInsuranceToken(0, {value: web3.toWei(1, 'ether'), from: accounts[2]})
     }).then(() => {
-      return insuranceFund.performFundAccounting();
+      return insuranceService.performFundAccounting();
     }).then(() => {
-      return factory.investmentFund.call();
+      return factory.investmentService.call();
     }).then((investmentAddress) => {
-      return investmentFund.dividends.call(accounts[1]);
+      return investmentService.dividends.call(accounts[1]);
     }).then((dividend) => {
       assert.isAbove(dividend.valueOf(), 0);
-      return helpers.getBalance(investmentFund.address);
+      return helpers.getBalance(investmentService.address);
     }).then((balance) => {
       assert.equal(web3.toWei(1, 'ether'), balance.valueOf());
       done();

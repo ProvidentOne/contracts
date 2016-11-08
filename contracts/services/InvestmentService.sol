@@ -1,13 +1,15 @@
 pragma solidity ^0.4.3;
 
-import "helpers/Owned.sol";
-import "tokens/StandardToken.sol";
+import "../Claim.sol";
 
-contract InvestmentFund is Owned, StandardToken {
+import "../helpers/Managed.sol";
+import "../tokens/StandardToken.sol";
+
+contract InvestmentService is Managed("Investment"), StandardToken {
     string public standard = 'InvestmentToken 0.1';
     string public name;
     string public symbol;
-    address public insuranceFund;
+
     uint8 public decimals;
 
     uint8 public newTokenPct; // Expressed in % since you cannot express not whole numbers in solidity.
@@ -18,23 +20,22 @@ contract InvestmentFund is Owned, StandardToken {
     uint256 public tokenSellPrice;
 
     mapping (address => uint256) public dividends;
+
     event Dividends(uint perToken);
     event TokenOffering(uint tokenAmount, uint tokenPrice);
 
-    function InvestmentFund(
+    function InvestmentService(
       string tokenName,
       string tokenSymbol,
       uint256 initialSupply,
       uint256 initialTokenPrice,
-      address insuranceFundAddress,
       uint8 tokensIssuedPerDividendPct,
       uint8 tokensForHolderPct
       ) {
 
-      owner = msg.sender;
       name = tokenName;
       symbol = tokenSymbol;
-      insuranceFund = insuranceFundAddress;
+
       tokenSellPrice = initialTokenPrice;
 
       newTokenPct = tokensIssuedPerDividendPct;
@@ -44,6 +45,7 @@ contract InvestmentFund is Owned, StandardToken {
       mintTokens(initialSupply);
     }
 
+    // TODO: Add token mint allowance quotas.
     function mintTokens(uint256 newTokens) {
       if (mintingAllowed) {
         mintingAllowed = false;
@@ -59,9 +61,9 @@ contract InvestmentFund is Owned, StandardToken {
       totalSupply += newTokens;
 
       balances[this] += newTokens - tokensForHolder;
-      balances[owner] += tokensForHolder;
+      balances[manager] += tokensForHolder;
       addIfNewHolder(this);
-      addIfNewHolder(owner);
+      addIfNewHolder(manager);
 
       TokenOffering(availableTokens(), tokenSellPrice);
     }
@@ -77,7 +79,7 @@ contract InvestmentFund is Owned, StandardToken {
         balances[this] -= tokenAmount;
         Transfer(this, msg.sender, tokenAmount);
         addIfNewHolder(msg.sender);
-        if (!insuranceFund.call.value(msg.value)()) {
+        if (!addressFor("Insurance").call.value(msg.value)()) {
           throw;
         }
       } else {
@@ -85,10 +87,7 @@ contract InvestmentFund is Owned, StandardToken {
       }
     }
 
-    function sendProfitsToInvestors() payable returns (bool) {
-      if (msg.sender != insuranceFund && msg.sender != owner) { // Keep owner for testing purposes. Should be removed ASAP.
-        throw; // Don't allow cash injections by other entities other than the insurance fund. Can complicate things.
-      }
+    function sendProfitsToInvestors() payable onlyManager returns (bool) {
 
       uint256 dividendPerToken = msg.value / (totalSupply - balances[this]); // Tokens held by contract do not participate in dividends
       for (uint i = 0; i<lastIndex; ++i) {
@@ -99,10 +98,8 @@ contract InvestmentFund is Owned, StandardToken {
       }
       Dividends(dividendPerToken);
 
-      if (msg.sender == insuranceFund) {
-        mintingAllowed = true;
-        mintTokens(totalSupply * newTokenPct / 100);
-      }
+      mintingAllowed = true;
+      mintTokens(totalSupply * newTokenPct / 100);
 
       return true;
     }
@@ -113,7 +110,7 @@ contract InvestmentFund is Owned, StandardToken {
       if (!success) { throw; }
     }
 
-    function changeTokenSellPrice(uint256 newPrice) onlyOwner {
+    function changeTokenSellPrice(uint256 newPrice) onlyManager {
       tokenSellPrice = newPrice;
     }
 
