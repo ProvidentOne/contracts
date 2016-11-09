@@ -1,5 +1,5 @@
 module.exports = (deployer) => {
-  deployer.deploy(InsuranceFund)
+  deployer.deploy(InsuranceFund, {gas: 4730000})
   .then(()=> {
     InsuranceFund.deployed().bootstrapInsurance({gas: 4700000})
   })
