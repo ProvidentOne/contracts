@@ -1,4 +1,4 @@
-pragma solidity ^0.4.3;
+pragma solidity ^0.4.4;
 
 import "../Claim.sol";
 import "./InvestmentService.sol";
@@ -34,6 +34,10 @@ contract InsuranceService is Managed('InsuranceService') {
     event PayoutForClaim(address claimAddress, uint256 claimAmount);
 
     function InsuranceService() {
+    }
+
+    function setInitialPlans() {
+      setInsurancePlans(getInitialInsurancePrices(3));
     }
 
     function setInsurancePlans(uint256[] plans) requiresPermission(PermissionLevel.Write) {
@@ -80,57 +84,40 @@ contract InsuranceService is Managed('InsuranceService') {
     }
 
     function getInsuranceProfile(address insured) constant returns
-     (int256 plan,
-      int256 startDate,
-      int256 finalDate) {
+     (int16 plan,
+      uint256 startDate,
+      uint256 finalDate,
+      uint256 totalSubscribedClaims) {
 
-      InsuredProfile profile = insuredProfile[insured];
-      if (profile.startDate == 0) {
-          return (-1, -1, -1);
-      }
-
-      return (int256(profile.plan), int256(profile.startDate), int256(profile.finalDate));
+      var (p, s, f, cs) = persistance().insuredProfile(insured);
+      return (s > 0 ? int16(p) : int16(-1), s, f, cs);
     }
 
     function getInsurancePlan(address insured) constant returns (int256 plan) {
-      int256 b;
-      int256 c;
-      (plan, b, c) = getInsuranceProfile(insured);
+      (plan,) = getInsuranceProfile(insured);
+      return;
     }
 
     function getPlanIdentifier(uint16 planType) constant returns (uint16) {
       return 1 + 100 * planType;
     }
 
-    function buyInsurancePlan(uint16 planType) payable returns (bool) {
-        int256 delta = int256(msg.value) - int256(planPrices[planType]);
-        if (delta < 0) {
-           return false;
-        }
+    function buyInsurancePlanFor(address insured, uint256 amountPayed, uint16 planType) payable returns (bool) {
+      if (int256(amountPayed) < int256(persistance().planPrices(planType))) {
+         return false;
+      }
 
-        if (delta > 0 && !msg.sender.send(uint256(delta))) {  // return remaining money
-          throw;
-        }
+      uint16 planIdentifier = getPlanIdentifier(planType);
+      var (p, s, f, cc) = getInsuranceProfile(insured);
 
-        uint16 n = getPlanIdentifier(planType);
+      // If never subscribed or current subscription was expired, new plan.
+      uint256 planStart = (s > 0 && now < f) ? s : now;
+      persistance().setInsuranceProfile(insured, int16(planIdentifier), int256(planStart), int256(planStart + insurancePeriod));
 
-        if (insuredProfile[msg.sender].startDate == 0) {
-          insuredProfile[msg.sender] = InsuredProfile({plan: n, startDate: now, finalDate: now, claims: new address[](0)});
-        } else {
-          insuredProfile[msg.sender].plan = n;
-          if (now > insuredProfile[msg.sender].finalDate) {
-            insuredProfile[msg.sender].startDate = now;
-            insuredProfile[msg.sender].finalDate = now;
-          }
-        }
+      soldPremiums += planPrices[planType];
+      InsuranceBought(msg.sender, planIdentifier);
 
-        insuredProfile[msg.sender].finalDate += insurancePeriod;
-
-        soldPremiums += planPrices[planType];
-
-        InsuranceBought(msg.sender, n);
-
-        return true;
+      return true;
     }
 
     function createClaim(uint16 claimType, string evidence, address beneficiary) returns (int) {

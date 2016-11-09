@@ -1,13 +1,14 @@
-pragma solidity ^0.4.3;
+pragma solidity ^0.4.4;
 
 import "./Provident.sol";
 
 import "services/InsuranceService.sol";
 import "services/InvestmentService.sol";
 
+import "persistance/AccountingPersistance.sol";
+
 import "helpers/Owned.sol";
 import "helpers/Managed.sol";
-
 
 contract InsuranceFund is Manager { // is Provident (Solidity compiler bug)
   bool isBootstraped;
@@ -18,11 +19,26 @@ contract InsuranceFund is Manager { // is Provident (Solidity compiler bug)
   }
 
   function getNumberOfInsurancePlans() constant public returns (uint16) {
-    return InsuranceService(addressFor('InsuranceService')).getPlanCount();
+    return insurance().getPlanCount();
   }
 
   function getInsurancePlanPrice(uint16 plan) constant public returns (uint256) {
-    return InsuranceService(addressFor('InsuranceService')).getPlanPrice(plan);
+    return insurance().getPlanPrice(plan);
+  }
+
+  function buyInsurancePlan(uint16 plan) payable public {
+    if (!insurance().buyInsurancePlanFor(msg.sender, msg.value, plan)) {
+      throw; // If it failed, reverse transaction returning funds.
+    }
+    accounting().saveTransaction(AccountingPersistance.TransactionDirection.Incoming, msg.value, msg.sender, this, 'premium bought');
+  }
+
+  function insurance() private returns (InsuranceService) {
+    return InsuranceService(addressFor('InsuranceService'));
+  }
+
+  function accounting() private returns (AccountingPersistance) {
+    return AccountingPersistance(addressFor('AccountingDB'));
   }
 
   // Bootstrap
@@ -37,7 +53,7 @@ contract InsuranceFund is Manager { // is Provident (Solidity compiler bug)
 
     InsuranceService insuranceService = new InsuranceService();
     insuranceDB.assignPermission(address(insuranceService), Managed.PermissionLevel.Write);
-    insuranceService.setInsurancePlans(insuranceService.getInitialInsurancePrices(3));
+    insuranceService.setInitialPlans();
 
     addService(address(insuranceService));
     addService(address(createInvestmentService()));
