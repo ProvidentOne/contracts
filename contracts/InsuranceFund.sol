@@ -36,7 +36,7 @@ contract InsuranceFund is Manager { // is Provident (Solidity compiler bug)
     if (!insurance().buyInsurancePlanFor(msg.sender, msg.value, plan)) {
       throw; // If it failed, reverse transaction returning funds.
     }
-    accounting().saveTransaction(AccountingPersistance.TransactionDirection.Incoming, msg.value, msg.sender, this, 'premium bought');
+    accounting().saveTransaction(AccountingPersistance.TransactionDirection.Incoming, msg.value, msg.sender, this, 'premium bought', false);
   }
 
   function insurance() private returns (InsuranceService) {
