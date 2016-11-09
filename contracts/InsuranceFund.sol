@@ -50,6 +50,8 @@ contract InsuranceFund is Manager { // is Provident (Solidity compiler bug)
 
     InsurancePersistance insuranceDB = new InsurancePersistance();
     addPersistance(address(insuranceDB));
+    AccountingPersistance accountingDB = new AccoutingPersistance();
+    addPersistance(address(accountingDB));
 
     InsuranceService insuranceService = new InsuranceService();
     insuranceDB.assignPermission(address(insuranceService), Managed.PermissionLevel.Write);
