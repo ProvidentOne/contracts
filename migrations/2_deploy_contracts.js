@@ -1,7 +1,10 @@
 module.exports = (deployer) => {
-  deployer.deploy(InsuranceFund, {gas: 4700000})
-  .then(()=> {
-    InsuranceFund.deployed().bootstrapInsurance({gas: 4700000})
+  deployer.deploy([[InsuranceFund],[InsuranceService]])
+  .then(() => {
+    InsuranceService.deployed().transferManagement(InsuranceFund.deployed().address);
+  })
+  .then(() => {
+    InsuranceFund.deployed().setInsuranceService(InsuranceService.deployed().address, true, {gas: 4700000});
   })
   .catch((e) => { console.log('FUCKKK', e) })
 };

@@ -6,18 +6,7 @@ import "../helpers/Managed.sol";
 import "../persistance/InsurancePersistance.sol";
 
 contract InsuranceService is Managed('InsuranceService') {
-    struct InsuredProfile {
-        uint16 plan;
-        uint256 startDate;
-        uint256 finalDate;
-        address[] claims;
-    }
-    mapping (address => InsuredProfile) private insuredProfile;
-
     uint insurancePeriod = 30 days;
-
-    mapping (uint16 => uint256) public planPrices;
-    uint16 public planTypes;
 
     uint256 public soldPremiums;
     uint256 public claimedMoney;
@@ -36,10 +25,6 @@ contract InsuranceService is Managed('InsuranceService') {
     function InsuranceService() {
     }
 
-    function setInitialPlans() {
-      setInsurancePlans(getInitialInsurancePrices(3));
-    }
-
     function setInsurancePlans(uint256[] plans) requiresPermission(PermissionLevel.Write) {
       persistance().setInsurancePlans(plans);
     }
@@ -50,6 +35,10 @@ contract InsuranceService is Managed('InsuranceService') {
 
     function getPlanPrice(uint16 plan) requiresPermission(PermissionLevel.Read) constant returns (uint256) {
       return persistance().planPrices(plan);
+    }
+
+    function setInitialPlans() {
+      setInsurancePlans(getInitialInsurancePrices(3));
     }
 
     function getInitialInsurancePrices(uint16 k) constant private returns (uint256[]) {
@@ -114,7 +103,7 @@ contract InsuranceService is Managed('InsuranceService') {
       uint256 planStart = (s > 0 && now < f) ? s : now;
       persistance().setInsuranceProfile(insured, int16(planIdentifier), int256(planStart), int256(planStart + insurancePeriod));
 
-      soldPremiums += planPrices[planType];
+      // soldPremiums += planPrices[planType];
       InsuranceBought(msg.sender, planIdentifier);
 
       return true;
@@ -129,6 +118,7 @@ contract InsuranceService is Managed('InsuranceService') {
     function submitClaim(Claim submittedClaim, uint16 claimType, address claimer) returns (int) {
       uint16 planId = getPlanIdentifier(claimType);
 
+      /*
       InsuredProfile insured = insuredProfile[claimer];
       if (insured.plan == planId && insured.finalDate >= now
           && insured.startDate <= now) {
@@ -136,6 +126,7 @@ contract InsuranceService is Managed('InsuranceService') {
       }
 
       insured.claims.push(address(submittedClaim));
+      */
 
       claims[claimIndex] = address(submittedClaim);
       claimIndex += 1;
@@ -175,10 +166,6 @@ contract InsuranceService is Managed('InsuranceService') {
         claimExaminers[i] = examiners[i];
       }
       return claimExaminers;
-    }
-
-    function insuredClaims(address insured) constant returns (address[]) {
-      return insuredProfile[insured].claims;
     }
 
     function moneyForClaim(uint16 claimType) constant returns (uint256) {

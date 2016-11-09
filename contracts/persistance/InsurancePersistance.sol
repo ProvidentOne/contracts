@@ -23,7 +23,7 @@ contract InsurancePersistance is Managed('InsuranceDB') {
       uint256 totalSubscribedClaims;
   }
   mapping (address => InsuredProfile) public insuredProfile;
-  mapping (address => mapping (uint256 => address)) public subscribedClaims;
+  // mapping (address => mapping (uint256 => address)) public subscribedClaims;
 
   // Allow for not setting values by sending -1
   function setInsuranceProfile(address insured, int16 plan, int256 startDate, int256 finalDate) {
