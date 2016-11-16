@@ -19,7 +19,7 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
     bootstrapPersistance();
   }
 
-  modifier onlyTransferredServices {
+  modifier onlyWaivedServices {
     if (msg.sender == addressFor('InsuranceService')) {
       _;
     } else {
@@ -27,7 +27,11 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
     }
   }
 
-  function sendFunds(address recipient, uint256 amount, string concept) onlyTransferredServices returns (bool) {
+  function sendFunds(address recipient, uint256 amount, string concept) onlyWaivedServices returns (bool) {
+    accounting().saveTransaction(AccountingPersistance.TransactionDirection.Outgoing, amount, this, recipient, concept, false);
+    if (!recipient.send(amount)) {
+      throw;
+    }
     return true;
   }
 
@@ -64,7 +68,6 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
   }
 
   // Bootstrap
-
   function bootstrapPersistance() onlyOwner {
     if (isBootstraped) {
       throw;
@@ -84,11 +87,5 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
     if (setInitialPlans) {
       insuranceService.setInitialPlans();
     }
-
-    addService(address(createInvestmentService()));
-  }
-
-  function createInvestmentService() returns (InvestmentService) {
-    return new InvestmentService("InvFund", "INV", 100000, 1 ether, 100, 20);
   }
 }

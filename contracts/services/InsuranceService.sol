@@ -6,7 +6,7 @@ import "../helpers/Managed.sol";
 import "../persistance/InsurancePersistance.sol";
 
 contract InsuranceService is Managed('InsuranceService') {
-    uint insurancePeriod = 30 days;
+    uint constant private insurancePeriod = 30 days;
 
     event InsuranceBought(address insured, uint16 insuranceType);
     event NewClaim(address claimAddress, address originator);
@@ -112,7 +112,7 @@ contract InsuranceService is Managed('InsuranceService') {
       Claim claim = Claim(claimAddress);
       if (claim.currentState() == Claim.ClaimStates.Accepted) {
         uint256 claimAmount = moneyForClaim(claim.claimType());
-        if (claim.sendPayout.value(claimAmount)() &&
+        if (Manager(manager).sendFunds(claimAddress, claimAmount, 'claim') &&
             claim.currentState() == Claim.ClaimStates.Payed) {
           PayoutForClaim(claimAddress, claimAmount);
         } else {
@@ -122,9 +122,7 @@ contract InsuranceService is Managed('InsuranceService') {
     }
 
     function examinersForClaim(uint16 claimType) private returns (address[]) {
-
       // right now it doesnt difference among claimTypes
-
       var examinerCount = persistance().examinerIndex();
       address[] memory claimExaminers = new address[](examinerCount);
       for (uint16 i = 0; i < examinerCount; i++) {

@@ -57,6 +57,8 @@ contract Manager is Owned {
 
     throw;
   }
+
+  function sendFunds(address recipient, uint256 amount, string concept) returns (bool);
 }
 
 contract Managed {

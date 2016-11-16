@@ -242,4 +242,8 @@ contract Claim {
 
     return false;
   }
+
+  function() payable {
+    sendPayout();
+  }
 }
