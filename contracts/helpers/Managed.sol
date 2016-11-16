@@ -6,11 +6,27 @@ contract Manager is Owned {
   mapping (bytes32 => address) private services;
   mapping (bytes32 => address) private persistance;
 
+  mapping (uint8 => bytes32) private allServices;
+  uint8 private allServicesIndex;
+
+  modifier onlyServices {
+    for (uint8 i = 0; i<allServicesIndex; i++) {
+      if (msg.sender == services[allServices[allServicesIndex]]) {
+        _;
+        return;
+      }
+    }
+    throw;
+  }
+
   function addService(address newService) onlyOwner {
     Managed service = Managed(newService);
     bytes32 h = service.identifier();
     if (services[h] != 0x0) {
       service.destroy();
+    } else {
+      //allServices[allServicesIndex] = h;
+      //allServicesIndex += 1;
     }
 
     services[h] = newService;

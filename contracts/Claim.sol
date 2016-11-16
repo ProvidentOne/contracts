@@ -1,5 +1,7 @@
 pragma solidity ^0.4.4;
 
+import "helpers/Managed.sol";
+
 contract Claim {
   enum ClaimStates {
     Created,
@@ -30,6 +32,7 @@ contract Claim {
 
   address public ownerAddress;
   address public insuranceAddress;
+  address public managerAddress;
 
   uint16 public claimType;
   string public claimEvidence;
@@ -66,14 +69,14 @@ contract Claim {
   function Claim(
     uint16 _type,
     string _evidence,
-    address _insurance,
+    address _manager,
     address _beneficiary
   ) {
     createDate = now;
     modifiedDate = now;
 
     ownerAddress = msg.sender;
-    insuranceAddress = _insurance;
+    managerAddress = _manager;
 
     claimType = _type;
     claimEvidence = _evidence;
@@ -157,9 +160,13 @@ contract Claim {
 
   function isOriginatorType(Originator originator) private constant returns (bool) {
     if (originator == Originator.Owner) { return msg.sender == ownerAddress; }
-    if (originator == Originator.Insurance) { return msg.sender == insuranceAddress; }
     if (originator == Originator.Examiner) { return isExaminer(msg.sender); }
-
+    if (originator == Originator.Insurance) {
+      // Solidity doesn't like compound conditionals inline
+      if (msg.sender == managerAddress || msg.sender == Manager(managerAddress).addressFor('InsuranceService')) {
+        return true;
+      }
+    }
     return false;
   }
 

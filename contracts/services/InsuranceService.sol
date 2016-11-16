@@ -78,7 +78,7 @@ contract InsuranceService is Managed('InsuranceService') {
     }
 
     function createClaim(address claimer, uint16 claimType, string evidence, address beneficiary) returns (bool) {
-      Claim newClaim = new Claim(claimType, evidence, this, beneficiary);
+      Claim newClaim = new Claim(claimType, evidence, manager, beneficiary);
       newClaim.transferOwnership(claimer);
       return submitClaim(newClaim, claimType);
     }
@@ -101,7 +101,7 @@ contract InsuranceService is Managed('InsuranceService') {
       NewClaim(claimAddress, claimer);
 
       submittedClaim.transitionState(Claim.ClaimStates.Review);
-      // submittedClaim.assignExaminers(examinersForClaim(claimType), examinerIndex);
+      submittedClaim.assignExaminers(examinersForClaim(claimType), examinerIndex);
 
       return true;
     }
@@ -119,16 +119,16 @@ contract InsuranceService is Managed('InsuranceService') {
       }
     }
 
-    /*
     function examinersForClaim(uint16 claimType) private returns (address[]) {
-      // right now it the difference among claimTypes
-      address[] memory claimExaminers = new address[](examinerIndex);
-      for (uint16 i = 0; i < examinerIndex; i++) {
-        claimExaminers[i] = examiners[i];
+      // right now it doesnt difference among claimTypes
+      var examinerCount = persistance().examinerIndex();
+      address[] memory claimExaminers = new address[](examinerCount);
+      for (uint16 i = 0; i < examinerCount; i++) {
+        claimExaminers[i] = persistance().examiners(i);
       }
       return claimExaminers;
     }
-    */
+
     function moneyForClaim(uint16 claimType) constant returns (uint256) {
       return 5 ether;
     }

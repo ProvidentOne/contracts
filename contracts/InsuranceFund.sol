@@ -10,13 +10,17 @@ import "persistance/InsurancePersistance.sol";
 
 import "helpers/Managed.sol";
 
-contract InsuranceFund is Manager { // is Provident (Solidity compiler bug)
+contract InsuranceFund is Manager { // is Provident (need to properly conform first)
   bool isBootstraped;
 
   function InsuranceFund() {
     owner = msg.sender;
     isBootstraped = false;
     bootstrapPersistance();
+  }
+
+  function sendFunds(address recipient, uint256 amount, string concept) onlyServices returns (bool) {
+    return true;
   }
 
   function getNumberOfInsurancePlans() constant public returns (uint16) {
@@ -37,6 +41,10 @@ contract InsuranceFund is Manager { // is Provident (Solidity compiler bug)
       throw; // If it failed, reverse transaction returning funds.
     }
     accounting().saveTransaction(AccountingPersistance.TransactionDirection.Incoming, msg.value, msg.sender, this, 'premium bought', false);
+  }
+
+  function createClaim(uint16 claimType, string evidence, address beneficiary) returns (bool) {
+    return insurance().createClaim(msg.sender, claimType, evidence, beneficiary);
   }
 
   function insurance() private returns (InsuranceService) {
