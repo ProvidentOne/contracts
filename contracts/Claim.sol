@@ -161,10 +161,10 @@ contract Claim {
     if (originator == Originator.Owner) { return msg.sender == ownerAddress; }
     if (originator == Originator.Examiner) { return isExaminer(msg.sender); }
     if (originator == Originator.Insurance) {
-       // Solidity doesn't like compound conditionals inline
-       if (msg.sender == managerAddress || msg.sender == Manager(managerAddress).addressFor('InsuranceService')) {
-         return true;
-       }
+      // Solidity doesn't like compound conditionals inline
+      if (msg.sender == managerAddress || msg.sender == Manager(managerAddress).addressFor('InsuranceService')) {
+        return true;
+      }
     }
     return false;
   }

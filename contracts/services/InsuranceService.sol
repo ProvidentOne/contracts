@@ -78,7 +78,7 @@ contract InsuranceService is Managed('InsuranceService') {
     }
 
     function createClaim(address claimer, uint16 claimType, string evidence, address beneficiary) returns (bool) {
-      Claim newClaim = new Claim(claimType, evidence, this, beneficiary);
+      Claim newClaim = new Claim(claimType, evidence, manager, beneficiary);
       newClaim.transferOwnership(claimer);
       return submitClaim(newClaim, claimType);
     }
@@ -102,7 +102,6 @@ contract InsuranceService is Managed('InsuranceService') {
 
       var examiners = examinersForClaim(claimType);
       var neededAprovals = uint16(examiners.length);
-
       submittedClaim.assignExaminers(examiners, neededAprovals);
       submittedClaim.transitionState(Claim.ClaimStates.Review);
 
@@ -123,7 +122,9 @@ contract InsuranceService is Managed('InsuranceService') {
     }
 
     function examinersForClaim(uint16 claimType) private returns (address[]) {
-      // right now it the difference among claimTypes
+
+      // right now it doesnt difference among claimTypes
+
       var examinerCount = persistance().examinerIndex();
       address[] memory claimExaminers = new address[](examinerCount);
       for (uint16 i = 0; i < examinerCount; i++) {

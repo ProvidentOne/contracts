@@ -28,6 +28,7 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
   }
 
   function sendFunds(address recipient, uint256 amount, string concept) onlyTransferredServices returns (bool) {
+    return true;
   }
 
   function getNumberOfInsurancePlans() constant public returns (uint16) {
@@ -50,7 +51,7 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
     accounting().saveTransaction(AccountingPersistance.TransactionDirection.Incoming, msg.value, msg.sender, this, 'premium bought', false);
   }
 
-  function createClaim(uint16 claimType, address beneficiary, string evidence) returns (bool) {
+  function createClaim(uint16 claimType, string evidence, address beneficiary) returns (bool) {
     return insurance().createClaim(msg.sender, claimType, evidence, beneficiary);
   }
 
