@@ -23,7 +23,8 @@ contract AccountingPersistance is Managed('AccountingDB') {
   mapping (uint256 => Transaction) public transactions;
   uint256 public lastTransaction;
 
-  function saveTransaction(TransactionDirection direction, uint256 amount, address from, address to, string concept, bool isDividend) {
+  function saveTransaction(TransactionDirection direction, uint256 amount, address from, address to, string concept, bool isDividend)
+    requiresPermission(PermissionLevel.Manager) {
     transactions[lastTransaction] = Transaction({direction: direction, amount: amount, from: from, to: to, concept: concept, timestamp: now});
     lastTransaction += 1;
 
@@ -50,7 +51,7 @@ contract AccountingPersistance is Managed('AccountingDB') {
   mapping (uint256 => AccountingPeriod) public accountingPeriods;
   uint256 public currentPeriod;
 
-  function startNewAccoutingPeriod() {
+  function startNewAccoutingPeriod() requiresPermission(PermissionLevel.Manager) {
     currentPeriod += 1;
     var lastPeriod = accountingPeriods[currentPeriod - 1];
     var lastProfit = int256(lastPeriod.premiums) - int256(lastPeriod.claims) - int256(lastPeriod.pastLosses);

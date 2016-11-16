@@ -49,7 +49,7 @@ contract InsuranceFund is Manager { // is Provident (Solidity compiler bug)
 
   // Bootstrap
 
-  function bootstrapPersistance() {
+  function bootstrapPersistance() onlyOwner {
     if (isBootstraped) {
       throw;
     }
