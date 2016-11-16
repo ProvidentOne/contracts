@@ -38,7 +38,7 @@ contract InsurancePersistance is Managed('InsuranceDB') {
     }
   }
 
-  function subscribeInsuredToClaim(address insured, address claim) {
+  function subscribeInsuredToClaim(address insured, address claim) requiresPermission(PermissionLevel.Write) {
     subscribedClaims[insured][insuredProfile[insured].totalSubscribedClaims] = claim;
     insuredProfile[insured].totalSubscribedClaims += 1;
   }
@@ -46,13 +46,13 @@ contract InsurancePersistance is Managed('InsuranceDB') {
   mapping (uint256 => address) public claims;
   uint256 public claimIndex;
 
-  function addClaim(address claim) {
+  function addClaim(address claim) requiresPermission(PermissionLevel.Write) {
     claims[claimIndex] = claim;
     claimIndex += 1;
   }
 
   mapping (uint16 => address) public examiners;
-  uint16 private examinerIndex;
+  uint16 public examinerIndex;
 
   function addExaminer(address examinerAddress) requiresPermission(PermissionLevel.Manager) {
     examiners[examinerIndex] = examinerAddress;

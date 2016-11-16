@@ -87,7 +87,7 @@ contract InsuranceService is Managed('InsuranceService') {
       uint16 planId = getPlanIdentifier(claimType);
 
       var claimer = submittedClaim.ownerAddress();
-      // TODO: new profiles
+
       var (plan, startDate, finalDate, subscribedClaims) = getInsuranceProfile(claimer);
       if (plan > 0 && uint16(plan) == planId && isInsured(startDate, finalDate)) {
         return false;
@@ -100,8 +100,11 @@ contract InsuranceService is Managed('InsuranceService') {
 
       NewClaim(claimAddress, claimer);
 
+      var examiners = examinersForClaim(claimType);
+      var neededAprovals = uint16(examiners.length);
+
+      submittedClaim.assignExaminers(examiners, neededAprovals);
       submittedClaim.transitionState(Claim.ClaimStates.Review);
-      // submittedClaim.assignExaminers(examinersForClaim(claimType), examinerIndex);
 
       return true;
     }
@@ -119,16 +122,16 @@ contract InsuranceService is Managed('InsuranceService') {
       }
     }
 
-    /*
     function examinersForClaim(uint16 claimType) private returns (address[]) {
       // right now it the difference among claimTypes
-      address[] memory claimExaminers = new address[](examinerIndex);
-      for (uint16 i = 0; i < examinerIndex; i++) {
-        claimExaminers[i] = examiners[i];
+      var examinerCount = persistance().examinerIndex();
+      address[] memory claimExaminers = new address[](examinerCount);
+      for (uint16 i = 0; i < examinerCount; i++) {
+        claimExaminers[i] = persistance().examiners(i);
       }
       return claimExaminers;
     }
-    */
+
     function moneyForClaim(uint16 claimType) constant returns (uint256) {
       return 5 ether;
     }
