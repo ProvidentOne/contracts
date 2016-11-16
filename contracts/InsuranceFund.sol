@@ -19,8 +19,15 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
     bootstrapPersistance();
   }
 
-  function sendFunds(address recipient, uint256 amount, string concept) onlyServices returns (bool) {
+  modifier onlyTransferredServices {
+    if (msg.sender == addressFor('InsuranceService')) {
+      _;
+    } else {
+      throw;
+    }
+  }
 
+  function sendFunds(address recipient, uint256 amount, string concept) onlyTransferredServices returns (bool) {
   }
 
   function getNumberOfInsurancePlans() constant public returns (uint16) {
@@ -43,6 +50,9 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
     accounting().saveTransaction(AccountingPersistance.TransactionDirection.Incoming, msg.value, msg.sender, this, 'premium bought', false);
   }
 
+  function createClaim(uint16 claimType, address beneficiary, string evidence) returns (bool) {
+    return insurance().createClaim(msg.sender, claimType, evidence, beneficiary);
+  }
 
   function insurance() private returns (InsuranceService) {
     return InsuranceService(addressFor('InsuranceService'));

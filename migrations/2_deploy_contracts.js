@@ -1,5 +1,5 @@
 module.exports = (deployer) => {
-  deployer.deploy([[InsuranceFund],[InsuranceService]])
+  deployer.deploy([[InsuranceFund, {gas: 5500000}],[InsuranceService]])
   .then(() => {
     InsuranceService.deployed().transferManagement(InsuranceFund.deployed().address);
   })
