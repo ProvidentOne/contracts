@@ -6,7 +6,6 @@ import "services/InsuranceService.sol";
 import "services/InvestmentService.sol";
 
 import "persistance/AccountingPersistance.sol";
-import "persistance/InsurancePersistance.sol";
 
 import "helpers/Managed.sol";
 

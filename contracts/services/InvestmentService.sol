@@ -1,11 +1,8 @@
 pragma solidity ^0.4.4;
 
-import "../Claim.sol";
-
-import "../helpers/Managed.sol";
 import "../tokens/Token.sol";
-
-import "../persistance/InvestmentService";
+import "../helpers/Managed.sol";
+import "../persistance/InvestmentPersistance.sol";
 
 contract InvestmentService is Managed('InvestmentService'), Token {
   string constant public standard = 'InsuranceToken 0.1';
@@ -28,8 +25,12 @@ contract InvestmentService is Managed('InvestmentService'), Token {
     mintTokens(initialSupply);
   }
 
-  function tokenSupply() constant returns (uint256) {
+  function totalTokens() constant returns (uint256) {
     return persistance().tokenSupply();
+  }
+
+  function availableTokenSupply() constant returns (uint256) {
+    return balances[this];
   }
 
   function tokenPrice() constant returns (uint256) {
@@ -44,7 +45,7 @@ contract InvestmentService is Managed('InvestmentService'), Token {
       throw;
     }
 
-    uint256 tokensForHolder = (newTokens * holderTokensPct) / 100;
+    uint256 tokensForHolder = 100; //(newTokens * holderTokensPct) / 100;
     if (tokensForHolder > newTokens) { // wtf
       throw;
     }
@@ -57,12 +58,6 @@ contract InvestmentService is Managed('InvestmentService'), Token {
     addIfNewHolder(manager);
 
     TokenOffering(availableTokens(), tokenPrice);
-  }
-
-  function
-
-  function availableTokens() constant returns (uint256) {
-    return balances[this];
   }
 
   function buyTokens(address holder) payable {
@@ -143,22 +138,6 @@ contract InvestmentService is Managed('InvestmentService'), Token {
   function allowance(address _owner, address _spender) constant returns (uint256 remaining) {
     return allowed[_owner][_spender];
   }
-
-  function addIfNewHolder(address holder) internal {
-    bool found = false;
-    for (uint i = 0; i<lastIndex; ++i) {
-      if (tokenHolders[i] == holder) {
-        found = true;
-        break;
-      }
-    }
-
-    if (!found) {
-      tokenHolders[lastIndex] = holder;
-      lastIndex += 1;
-    }
-  }
-
   function changeTokenSellPrice(uint256 newPrice) requiresPermission(PermissionLevel.Manager) {
     tokenPrice = newPrice;
   }

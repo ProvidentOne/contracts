@@ -1,7 +1,6 @@
 pragma solidity ^0.4.4;
 
 import "../Claim.sol";
-import "./InvestmentService.sol";
 import "../helpers/Managed.sol";
 import "../persistance/InsurancePersistance.sol";
 
