@@ -77,8 +77,6 @@ contract InsuranceService is Managed('InsuranceService') {
       return true;
     }
 
-    event Debug(string d);
-
     function createClaim(address claimer, uint16 claimType, string evidence, address beneficiary) returns (bool) {
       Claim newClaim = new Claim(claimType, evidence, manager, beneficiary);
       newClaim.transferOwnership(claimer);
@@ -88,16 +86,12 @@ contract InsuranceService is Managed('InsuranceService') {
     function submitClaim(Claim submittedClaim, uint16 claimType) returns (bool) {
       uint16 planId = getPlanIdentifier(claimType);
 
-      Debug("oh hey");
       var claimer = submittedClaim.ownerAddress();
-      Debug("claimer lol");
 
       var (plan, startDate, finalDate, subscribedClaims) = getInsuranceProfile(claimer);
       if (plan <= 0 || uint16(plan) != planId || !isInsured(startDate, finalDate)) {
         return false;
       }
-
-      Debug("jorge doesnt know conditionals");
 
       var claimAddress = address(submittedClaim);
 
