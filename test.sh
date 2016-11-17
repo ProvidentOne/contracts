@@ -1,4 +1,5 @@
 #!/bin/sh
 
-nohup sh -c testrpc -p 8811 &
-truffle test --network testing
+killall node
+nohup sh start_testrpc.sh &
+truffle test

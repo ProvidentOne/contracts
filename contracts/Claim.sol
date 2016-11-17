@@ -47,11 +47,13 @@ contract Claim {
 
   event StateTransitionNotAllowed(ClaimStates oldState, ClaimStates newState, address originary);
   event StateDidTransition(ClaimStates oldState, ClaimStates newState, address originary);
-  event ActionNotAllowed(ClaimStates state, address originary);
+  event ActionNotAllowed(ClaimStates state, address originary, string reason);
+
+  event Log(string debug);
 
   modifier onlyAddress(Originator _originary) {
-    if (isOriginatorType(_originary)) {
-      ActionNotAllowed(currentState, msg.sender);
+    if (!isOriginatorType(_originary)) {
+      ActionNotAllowed(currentState, msg.sender, 'address');
       return;
     }
     _;
@@ -59,7 +61,7 @@ contract Claim {
 
   modifier onlyState(ClaimStates _state) {
     if (currentState != _state) {
-      ActionNotAllowed(currentState, msg.sender);
+      ActionNotAllowed(currentState, msg.sender, 'state');
       return;
     }
     _;
@@ -114,8 +116,8 @@ contract Claim {
 
   function transferOwnership(address newOwner)
     onlyAddress(Originator.Owner) returns (bool) {
-
       ownerAddress = newOwner;
+      Log("ownership changed");
       return true;
   }
 

@@ -1,40 +1,5 @@
 const helpers = require('./helpers');
 
-deployContract = () => {
-  var fund;
-  var service;
-  return InsuranceFund.new().then((f) => {
-    fund = f;
-    return InsuranceService.new();
-  })
-  .then((s) => {
-    service = s;
-    return service.transferManagement(fund.address);
-  })
-  .then(() => {
-    return fund.setInsuranceService(service.address, true);
-  })
-  .then(() => {
-    return Promise.resolve(fund);
-  });
-}
-
-buyFirstInsurancePlan = (fund) => {
-  var price;
-  return fund.getNumberOfInsurancePlans()
-    .then((n) => {
-      buyingPlan = n.valueOf() - 1;
-      return fund.getInsurancePlanPrice(buyingPlan);
-    })
-    .then((p) => {
-      price = p.valueOf();
-      return fund.buyInsurancePlan(buyingPlan, {value: price});
-    })
-    .then(() => {
-      return Promise.resolve(price);
-    });
-}
-
 contract('InsuranceFund', (accounts) => {
   it("should deploy fund and service", function(done) {
     var fund;
@@ -44,22 +9,21 @@ contract('InsuranceFund', (accounts) => {
         return f.addressFor('InsuranceService');
       })
       .then((s) => {
-        assert.equal(s.startsWith('0x0000'), false, "insurance service isn't properly linked");
+        assert.notEqual(s, '0x', false, "insurance service isn't properly linked");
         done();
       });
   });
 
   it("should be able to buy insurance tokens", function(done) {
     var fund;
-    var buyingPlan;
     var price;
 
     deployContract()
       .then((f) => {
         fund = f;
-        return buyFirstInsurancePlan(fund);
+        return buyLastInsurancePlan(fund);
       })
-      .then((payed) => {
+      .then(([payed]) => {
         price = payed;
         return fund.getInsuredProfile();
       })
@@ -79,7 +43,7 @@ contract('InsuranceFund', (accounts) => {
         return f.buyInsurancePlan(0, {value: web3.toWei(1, 'wei')});
       })
       .then(() => {
-        assert.fail('shouldnt have failed because not enough money was sent');
+        assert.fail('should have failed because not enough money was sent');
         done();
       })
       .catch(function(e) {
@@ -88,27 +52,62 @@ contract('InsuranceFund', (accounts) => {
       });
   });
 
-  /*
-
-  it("should be able to claim if it is token holder", function(){
-    var insurance = InsuranceService.deployed();
-    var amount = web3.toWei(1000, 'finney');
-    var claimAmount = web3.toWei(10, 'finney');
-    var tokenPlan = web3.toBigNumber(0);
-    var beneficiaryAddress = accounts[4];
-
-    var initialBalance;
-
-    return insurance.buyInsuranceToken(tokenPlan, {from: accounts[1], value: amount}).then(function(v) {
-      return helpers.getBalance(beneficiaryAddress);
-    }).then((balance) => {
-      initialBalance = balance;
-      return insurance.transferForClaim(claimAmount, tokenPlan, accounts[1], beneficiaryAddress, {from: accounts[0]})
-    }).then(() => {
-        return helpers.getBalance(beneficiaryAddress);
-    }).then((balance) => {
-      assert.equal(balance.valueOf(), initialBalance.plus(claimAmount).valueOf(), "Should have gotten money for claim");
-    });
+  it("should be able to claim if it is token holder", function(done){
+    var fund;
+    deployContract()
+      .then((f) => {
+        fund = f;
+        return buyLastInsurancePlan(fund);
+      })
+      .then(([price, plan]) => {
+        return fund.createClaim(plan, 'test evidence', accounts[0]);
+      })
+      .then(() => {
+        return fund.addressFor('InsuranceService').then((a) => { return Promise.resolve(InsuranceService.at(a)) });
+      })
+      .then((service) => {
+        return service.getInsuranceProfile(accounts[0]);
+      })
+      .then(([plan, startDate, endDate, subscribedClaims]) => {
+        assert.equal(subscribedClaims.valueOf(), 1, 'should be susbcribed to one claim')
+        done();
+      })
+      .catch(assert.fail)
   });
-  */
 });
+
+deployContract = () => {
+  var fund;
+  var service;
+  return InsuranceFund.new().then((f) => {
+    fund = f;
+    return InsuranceService.new();
+  })
+  .then((s) => {
+    service = s;
+    return service.transferManagement(fund.address);
+  })
+  .then(() => {
+    return fund.setInsuranceService(service.address, true);
+  })
+  .then(() => {
+    return Promise.resolve(fund);
+  });
+}
+
+buyLastInsurancePlan = (fund) => {
+  var price;
+  var buyingPlan;
+  return fund.getNumberOfInsurancePlans()
+    .then((n) => {
+      buyingPlan = n.valueOf() - 1;
+      return fund.getInsurancePlanPrice(buyingPlan);
+    })
+    .then((p) => {
+      price = p.valueOf();
+      return fund.buyInsurancePlan(buyingPlan, {value: price});
+    })
+    .then(() => {
+      return Promise.resolve([price, buyingPlan]);
+    });
+}

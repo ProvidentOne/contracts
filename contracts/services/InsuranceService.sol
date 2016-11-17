@@ -34,7 +34,7 @@ contract InsuranceService is Managed('InsuranceService') {
     function getInitialInsurancePrices(uint16 k) constant private returns (uint256[]) {
       uint256[] memory prices = new uint256[](k);
       for (uint16 i=0; i < k; i++) {
-        prices[i] = uint256(i + 1) * 2 ether;
+        prices[i] = uint256(i + 1) * 20 finney;
       }
       return prices;
     }
@@ -77,6 +77,8 @@ contract InsuranceService is Managed('InsuranceService') {
       return true;
     }
 
+    event Debug(string d);
+
     function createClaim(address claimer, uint16 claimType, string evidence, address beneficiary) returns (bool) {
       Claim newClaim = new Claim(claimType, evidence, manager, beneficiary);
       newClaim.transferOwnership(claimer);
@@ -86,12 +88,16 @@ contract InsuranceService is Managed('InsuranceService') {
     function submitClaim(Claim submittedClaim, uint16 claimType) returns (bool) {
       uint16 planId = getPlanIdentifier(claimType);
 
+      Debug("oh hey");
       var claimer = submittedClaim.ownerAddress();
+      Debug("claimer lol");
 
       var (plan, startDate, finalDate, subscribedClaims) = getInsuranceProfile(claimer);
-      if (plan > 0 && uint16(plan) == planId && isInsured(startDate, finalDate)) {
+      if (plan <= 0 || uint16(plan) != planId || !isInsured(startDate, finalDate)) {
         return false;
       }
+
+      Debug("jorge doesnt know conditionals");
 
       var claimAddress = address(submittedClaim);
 
@@ -102,8 +108,9 @@ contract InsuranceService is Managed('InsuranceService') {
 
       var examiners = examinersForClaim(claimType);
       var neededAprovals = uint16(examiners.length);
-      submittedClaim.assignExaminers(examiners, neededAprovals);
+
       submittedClaim.transitionState(Claim.ClaimStates.Review);
+      submittedClaim.assignExaminers(examiners, neededAprovals);
 
       return true;
     }
