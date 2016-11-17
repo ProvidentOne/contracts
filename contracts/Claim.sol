@@ -42,8 +42,8 @@ contract Claim {
 
   mapping (address => ExaminerDecision) examinerDecision;
   mapping (uint16 => address) public examiners;
-  uint16 totalExaminers;
-  uint16 neededApprovals;
+  uint16 public totalExaminers;
+  uint16 public neededApprovals;
 
   event StateTransitionNotAllowed(ClaimStates oldState, ClaimStates newState, address originary);
   event StateDidTransition(ClaimStates oldState, ClaimStates newState, address originary);
@@ -96,6 +96,8 @@ contract Claim {
       }
 
       neededApprovals = _neededApprovals;
+
+      Log("added examiners");
   }
 
   function addExaminerDecision(ExaminerDecision decision)
