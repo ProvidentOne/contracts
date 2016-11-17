@@ -19,6 +19,22 @@ deployContract = () => {
   });
 }
 
+buyFirstInsurancePlan = (fund) => {
+  var price;
+  return fund.getNumberOfInsurancePlans()
+    .then((n) => {
+      buyingPlan = n.valueOf() - 1;
+      return fund.getInsurancePlanPrice(buyingPlan);
+    })
+    .then((p) => {
+      price = p.valueOf();
+      return fund.buyInsurancePlan(buyingPlan, {value: price});
+    })
+    .then(() => {
+      return Promise.resolve(price);
+    });
+}
+
 contract('InsuranceFund', (accounts) => {
   it("should deploy fund and service", function(done) {
     var fund;
@@ -41,17 +57,10 @@ contract('InsuranceFund', (accounts) => {
     deployContract()
       .then((f) => {
         fund = f;
-        return fund.getNumberOfInsurancePlans();
+        return buyFirstInsurancePlan(fund);
       })
-      .then((n) => {
-        buyingPlan = n.valueOf() - 1;
-        return fund.getInsurancePlanPrice(buyingPlan);
-      })
-      .then((p) => {
-        price = p.valueOf();
-        return fund.buyInsurancePlan(buyingPlan, {value: price});
-      })
-      .then(() => {
+      .then((payed) => {
+        price = payed;
         return fund.getInsuredProfile();
       })
       .then(([plan, startDate, endDate]) => {
@@ -60,7 +69,7 @@ contract('InsuranceFund', (accounts) => {
       })
       .then((balance) => {
         assert.equal(price, balance.valueOf(), 'should have payed money in balance');
-        done()
+        done();
       });
   });
 
