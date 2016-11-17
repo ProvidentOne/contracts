@@ -48,7 +48,7 @@ contract('InsuranceFund', (accounts) => {
         return fund.getInsurancePlanPrice(buyingPlan);
       })
       .then((p) => {
-        price = p.valueOf()
+        price = p.valueOf();
         return fund.buyInsurancePlan(buyingPlan, {value: price});
       })
       .then(() => {
