@@ -3,117 +3,171 @@ pragma solidity ^0.4.4;
 import "../Claim.sol";
 
 import "../helpers/Managed.sol";
-import "../tokens/StandardToken.sol";
+import "../tokens/Token.sol";
 
-contract InvestmentService is Managed("Investment"), StandardToken {
-    string public standard = 'InvestmentToken 0.1';
-    string public name;
-    string public symbol;
+import "../persistance/InvestmentService";
 
-    uint8 public decimals;
+contract InvestmentService is Managed('InvestmentService'), Token {
+  string constant public standard = 'InsuranceToken 0.1';
+  string constant public name = 'InsuranceToken';
+  string constant public symbol = 'INS';
+  uint8 constant public decimals = 3;
 
-    uint8 public newTokenPct; // Expressed in % since you cannot express not whole numbers in solidity.
-    uint8 public holderTokensPct;
+  // Expressed in % since you cannot express floats numbers in solidity.
+  uint8 constant public holderTokensPct = 10;
 
-    bool private mintingAllowed;
+  uint256 public tokenPrice;
 
-    uint256 public tokenSellPrice;
+  event Dividends(uint perToken);
+  event TokenOffering(uint tokenAmount, uint tokenPrice);
 
-    mapping (address => uint256) public dividends;
+  function InvestmentService(uint256 initialSupply, uint256 initialTokenPrice) {
+    tokenPrice = initialTokenPrice;
 
-    event Dividends(uint perToken);
-    event TokenOffering(uint tokenAmount, uint tokenPrice);
+    mintingAllowed = true;
+    mintTokens(initialSupply);
+  }
 
-    function InvestmentService(
-      string tokenName,
-      string tokenSymbol,
-      uint256 initialSupply,
-      uint256 initialTokenPrice,
-      uint8 tokensIssuedPerDividendPct,
-      uint8 tokensForHolderPct
-      ) {
+  function tokenSupply() constant returns (uint256) {
+    return persistance().tokenSupply();
+  }
 
-      name = tokenName;
-      symbol = tokenSymbol;
+  function tokenPrice() constant returns (uint256) {
+    return persistance().tokenPrice();
+  }
 
-      tokenSellPrice = initialTokenPrice;
-
-      newTokenPct = tokensIssuedPerDividendPct;
-      holderTokensPct = tokensForHolderPct;
-
-      mintingAllowed = true;
-      mintTokens(initialSupply);
-    }
-
-    // TODO: Add token mint allowance quotas.
-    function mintTokens(uint256 newTokens) {
-      if (mintingAllowed) {
-        mintingAllowed = false;
-      } else {
-        throw;
-      }
-
-      uint256 tokensForHolder = (newTokens * holderTokensPct) / 100;
-      if (tokensForHolder > newTokens) { // wtf
-        throw;
-      }
-
-      totalSupply += newTokens;
-
-      balances[this] += newTokens - tokensForHolder;
-      balances[manager] += tokensForHolder;
-      addIfNewHolder(this);
-      addIfNewHolder(manager);
-
-      TokenOffering(availableTokens(), tokenSellPrice);
-    }
-
-    function availableTokens() constant returns (uint256) {
-      return balances[this];
-    }
-
-    function buyTokens() payable {
-      uint256 tokenAmount = msg.value / tokenSellPrice;
-      if (balances[this] >= tokenAmount && balances[msg.sender] + tokenAmount > balances[msg.sender])  {
-        balances[msg.sender] += tokenAmount;
-        balances[this] -= tokenAmount;
-        Transfer(this, msg.sender, tokenAmount);
-        addIfNewHolder(msg.sender);
-        if (!addressFor("Insurance").call.value(msg.value)()) {
-          throw;
-        }
-      } else {
-        throw;
-      }
-    }
-
-    function sendProfitsToInvestors() payable requiresPermission(PermissionLevel.Manager) returns (bool) {
-      uint256 dividendPerToken = msg.value / (totalSupply - balances[this]); // Tokens held by contract do not participate in dividends
-      for (uint i = 0; i<lastIndex; ++i) {
-        address holder = tokenHolders[i];
-        if (holder != address(this)) {
-          dividends[holder] += balances[holder] * dividendPerToken;
-        }
-      }
-      Dividends(dividendPerToken);
-
-      mintingAllowed = true;
-      mintTokens(totalSupply * newTokenPct / 100);
-
-      return true;
-    }
-
-    function withdraw() {
-      bool success = msg.sender.call.value(dividends[msg.sender])();
-      dividends[msg.sender] = 0;
-      if (!success) { throw; }
-    }
-
-    function changeTokenSellPrice(uint256 newPrice) requiresPermission(PermissionLevel.Manager) {
-      tokenSellPrice = newPrice;
-    }
-
-    function() {
+  // TODO: Add token mint allowance quotas.
+  function mintTokens(uint256 newTokens) {
+    if (mintingAllowed) {
+      mintingAllowed = false;
+    } else {
       throw;
     }
+
+    uint256 tokensForHolder = (newTokens * holderTokensPct) / 100;
+    if (tokensForHolder > newTokens) { // wtf
+      throw;
+    }
+
+    totalSupply += newTokens;
+
+    balances[this] += newTokens - tokensForHolder;
+    balances[manager] += tokensForHolder;
+    addIfNewHolder(this);
+    addIfNewHolder(manager);
+
+    TokenOffering(availableTokens(), tokenPrice);
+  }
+
+  function
+
+  function availableTokens() constant returns (uint256) {
+    return balances[this];
+  }
+
+  function buyTokens(address holder) payable {
+    uint256 tokenAmount = msg.value / tokenPrice;
+    if (balances[this] >= tokenAmount && balances[holder] + tokenAmount > balances[holder])  {
+      balances[holder] += tokenAmount;
+      balances[this] -= tokenAmount;
+      Transfer(this, holder, tokenAmount);
+      addIfNewHolder(holder);
+      if (!addressFor("InsuranceService").call.value(holder)()) {
+        throw;
+      }
+    } else {
+      throw;
+    }
+  }
+
+  function sendProfitsToInvestors() payable requiresPermission(PermissionLevel.Manager) returns (bool) {
+    uint256 dividendPerToken = msg.value / (totalSupply - balances[this]); // Tokens held by contract do not participate in dividends
+    for (uint i = 0; i<lastIndex; ++i) {
+      address holder = tokenHolders[i];
+      if (holder != address(this)) {
+        dividends[holder] += balances[holder] * dividendPerToken;
+      }
+    }
+    Dividends(dividendPerToken);
+
+    mintingAllowed = true;
+    mintTokens(totalSupply * newTokenPct / 100);
+
+    return true;
+  }
+
+  function withdraw() {
+    bool success = msg.sender.call.value(dividends[msg.sender])();
+    dividends[msg.sender] = 0;
+    if (!success) { throw; }
+  }
+
+  function transfer(address _to, uint256 _value) returns (bool success) {
+      //Default assumes totalSupply can't be over max (2^256 - 1).
+      //If your token leaves out totalSupply and can issue more tokens as time goes on, you need to check if it doesn't wrap.
+      //Replace the if with this one instead.
+      //if (balances[msg.sender] >= _value && balances[_to] + _value > balances[_to]) {
+      if (balances[msg.sender] >= _value && _value > 0) {
+          balances[msg.sender] -= _value;
+          balances[_to] += _value;
+
+          addIfNewHolder(_to);
+          Transfer(msg.sender, _to, _value);
+          return true;
+      } else { return false; }
+  }
+
+  function transferFrom(address _from, address _to, uint256 _value) returns (bool success) {
+      //same as above. Replace this line with the following if you want to protect against wrapping uints.
+      //if (balances[_from] >= _value && allowed[_from][msg.sender] >= _value && balances[_to] + _value > balances[_to]) {
+      if (balances[_from] >= _value && allowed[_from][msg.sender] >= _value && _value > 0) {
+          balances[_to] += _value;
+          balances[_from] -= _value;
+          allowed[_from][msg.sender] -= _value;
+          addIfNewHolder(_to);
+          Transfer(_from, _to, _value);
+          return true;
+      } else { return false; }
+  }
+
+  function balanceOf(address _owner) constant returns (uint256 balance) {
+      return balances[_owner];
+  }
+
+  function approve(address _spender, uint256 _value) returns (bool success) {
+      allowed[msg.sender][_spender] = _value;
+      Approval(msg.sender, _spender, _value);
+      return true;
+  }
+
+  function allowance(address _owner, address _spender) constant returns (uint256 remaining) {
+    return allowed[_owner][_spender];
+  }
+
+  function addIfNewHolder(address holder) internal {
+    bool found = false;
+    for (uint i = 0; i<lastIndex; ++i) {
+      if (tokenHolders[i] == holder) {
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      tokenHolders[lastIndex] = holder;
+      lastIndex += 1;
+    }
+  }
+
+  function changeTokenSellPrice(uint256 newPrice) requiresPermission(PermissionLevel.Manager) {
+    tokenPrice = newPrice;
+  }
+
+  function persistance() returns (InvestmentPersistance) {
+    return InvestmentPersistance(addressFor('InvestmentDB'));
+  }
+
+  function() payable {
+    buyTokens(msg.sender);
+  }
 }

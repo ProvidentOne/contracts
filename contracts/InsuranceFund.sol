@@ -19,6 +19,8 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
     bootstrapPersistance();
   }
 
+  event TokenAddressChanged(address newTokenAddress);
+
   modifier onlyWaivedServices {
     if (msg.sender == addressFor('InsuranceService')) {
       _;
@@ -87,5 +89,10 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
     if (setInitialPlans) {
       insuranceService.setInitialPlans();
     }
+  }
+
+  function setInvestmentService(address investment) onlyOwner {
+    addService(investment);
+    TokenAddressChanged(investment);
   }
 }
