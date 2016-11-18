@@ -8,7 +8,7 @@ contract InvestmentService is Managed('InvestmentService'), Token {
   string constant public standard = 'InsuranceToken 0.1';
   string constant public name = 'InsuranceToken';
   string constant public symbol = 'INS';
-  uint8 constant public decimals = 3;
+  uint8 constant public decimals = 0;
 
   // Expressed in % since you cannot express floats numbers in solidity.
   uint8 constant public holderTokensPct = 10;
@@ -25,12 +25,12 @@ contract InvestmentService is Managed('InvestmentService'), Token {
     mintTokens(initialSupply);
   }
 
-  function totalTokens() constant returns (uint256) {
+  function totalSupply() constant returns (uint256) {
     return persistance().tokenSupply();
   }
 
   function availableTokenSupply() constant returns (uint256) {
-    return balances[this];
+    return persistance.balances(manager);
   }
 
   function tokenPrice() constant returns (uint256) {
@@ -45,23 +45,20 @@ contract InvestmentService is Managed('InvestmentService'), Token {
       throw;
     }
 
-    uint256 tokensForHolder = 100; //(newTokens * holderTokensPct) / 100;
+    uint256 tokensForHolder = (newTokens * holderTokensPct) / 100;
     if (tokensForHolder > newTokens) { // wtf
       throw;
     }
 
-    totalSupply += newTokens;
+    persistance.setTokenSupply(persistance.totalSupply() + newTokens);
+    persistance.operateBalance(manager, newTokens - tokensForHolder);
+    persistance.operateBalance(Manager(manager).owner(), tokensForHolder);
 
-    balances[this] += newTokens - tokensForHolder;
-    balances[manager] += tokensForHolder;
-    addIfNewHolder(this);
-    addIfNewHolder(manager);
-
-    TokenOffering(availableTokens(), tokenPrice);
+    TokenOffering(availableTokenSupply(), tokenPrice);
   }
 
-  function buyTokens(address holder) payable {
-    uint256 tokenAmount = msg.value / tokenPrice;
+  function assingTokens(address holder, uint256 value) payable {
+    uint256 tokenAmount = value / tokenPrice;
     if (balances[this] >= tokenAmount && balances[holder] + tokenAmount > balances[holder])  {
       balances[holder] += tokenAmount;
       balances[this] -= tokenAmount;
@@ -147,6 +144,6 @@ contract InvestmentService is Managed('InvestmentService'), Token {
   }
 
   function() payable {
-    buyTokens(msg.sender);
+    assignTokens(msg.sender, msg.value);
   }
 }
