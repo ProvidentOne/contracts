@@ -15,16 +15,19 @@ contract InvestmentService is Managed('InvestmentService'), Token {
   // Expressed in % since you cannot express floats numbers in solidity.
   uint8 constant public holderTokensPct = 10;
   bool public mintingAllowed;
+  uint256 public allowedMinting;
 
   event Dividends(uint perToken);
   event TokenOffering(uint tokenAmount, uint tokenPrice);
 
   function InvestmentService() {
     mintingAllowed = false;
+    allowedMinting = 0;
   }
 
   function bootstrapInvestmentService(uint256 initialSupply, uint256 initialTokenPrice) requiresPermission(PermissionLevel.Manager) {
     mintingAllowed = true;
+    allowedMinting = initialSupply;
     persistance().setTokenPrice(initialTokenPrice);
     mintTokens(initialSupply);
   }
@@ -47,13 +50,23 @@ contract InvestmentService is Managed('InvestmentService'), Token {
     var delta = int256(premiums) - int256(claims);
     if (delta > 0) {
       sendProfitsToInvestors(uint256(delta));
+      allowedMinting = calculateAllowedMinting();
+      if (allowedMinting > 0) {
+        mintingAllowed = true;
+      }
     }
     accounting.startNewAccoutingPeriod();
   }
 
+  function calculateAllowedMinting() returns (uint256) {
+    var optimalTokens = 0; // calculate with actuarial model
+    var delta = int256(optimalTokens) - int256(totalSupply());
+    return delta > 0 ? uint256(delta) : 0;
+  }
+
   // TODO: Add token mint allowance quotas.
   function mintTokens(uint256 newTokens) {
-    if (mintingAllowed) {
+    if (mintingAllowed && newTokens <= allowedMinting) {
       mintingAllowed = false;
     } else {
       throw;
