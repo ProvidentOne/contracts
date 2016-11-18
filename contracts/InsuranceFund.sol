@@ -99,8 +99,8 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
 
   function setInsuranceService(address insurance, bool setInitialPlans) onlyOwner {
     InsuranceService insuranceService = InsuranceService(insurance);
-    InsurancePersistance(addressFor('InsuranceDB')).assignPermission(address(insuranceService), Managed.PermissionLevel.Write);
-    addService(address(insuranceService));
+    InsurancePersistance(addressFor('InsuranceDB')).assignPermission(insurance, Managed.PermissionLevel.Write);
+    addService(insurance);
 
     if (setInitialPlans) {
       insuranceService.setInitialPlans();
@@ -111,6 +111,11 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
     InvestmentPersistance(addressFor('InvestmentDB')).assignPermission(investment, Managed.PermissionLevel.Write);
     AccountingPersistance(addressFor('AccountingDB')).assignPermission(investment, Managed.PermissionLevel.Write);
     addService(investment);
+
+    if (bootstrap) {
+      InvestmentService(investment).bootstrapInvestmentService(1000000, 1 ether);
+    }
+
     TokenAddressChanged(investment);
   }
 }
