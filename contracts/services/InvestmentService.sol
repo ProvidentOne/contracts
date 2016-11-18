@@ -2,7 +2,9 @@ pragma solidity ^0.4.4;
 
 import "../tokens/Token.sol";
 import "../helpers/Managed.sol";
+
 import "../persistance/InvestmentPersistance.sol";
+import "../persistance/AccountingPersistance.sol";
 
 contract InvestmentService is Managed('InvestmentService'), Token {
   string constant public standard = 'InsuranceToken 0.1';
@@ -39,6 +41,16 @@ contract InvestmentService is Managed('InvestmentService'), Token {
     return persistance().tokenPrice();
   }
 
+  function performFundAccounting() requiresPermission(PermissionLevel.Manager) {
+    var accounting = AccountingPersistance(addressFor('AccountingDB'));
+    var (premiums,claims,) = accounting.accountingPeriods(accounting.currentPeriod());
+    var delta = int256(premiums) - int256(claims);
+    if (delta > 0) {
+      sendProfitsToInvestors(uint256(delta));
+    }
+    accounting.startNewAccoutingPeriod();
+  }
+
   // TODO: Add token mint allowance quotas.
   function mintTokens(uint256 newTokens) {
     if (mintingAllowed) {
@@ -59,7 +71,7 @@ contract InvestmentService is Managed('InvestmentService'), Token {
     TokenOffering(availableTokenSupply(), tokenPrice());
   }
 
-  function assingTokens(address holder, uint256 value) requiresPermission(PermissionLevel.Manager) {
+  function buyTokens(address holder, uint256 value) requiresPermission(PermissionLevel.Manager) returns (bool) {
     uint256 tokenAmount = value / tokenPrice();
     if (persistance().balances(manager) >= tokenAmount && persistance().balances(holder) + tokenAmount > persistance().balances(holder))  {
       persistance().operateBalance(holder, int256(tokenAmount));
@@ -69,9 +81,10 @@ contract InvestmentService is Managed('InvestmentService'), Token {
     } else {
       throw;
     }
+    return true;
   }
 
-  function sendProfitsToInvestors(uint256 profits) payable requiresPermission(PermissionLevel.Manager) returns (bool) {
+  function sendProfitsToInvestors(uint256 profits) private returns (bool) {
     uint256 circulatingTokens = totalSupply() - persistance().balances(manager);
     uint256 dividendPerToken = profits / circulatingTokens; // Tokens held by contract do not participate in dividends
 

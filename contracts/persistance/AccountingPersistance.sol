@@ -36,7 +36,7 @@ contract AccountingPersistance is Managed('AccountingDB') {
         accountingPeriods[currentPeriod].claims += amount;
       }
     } else {
-      accountingPeriods[currentPeriod].dividends += amount;
+      accountingPeriods[currentPeriod].dividends = amount;
     }
   }
 
@@ -51,7 +51,7 @@ contract AccountingPersistance is Managed('AccountingDB') {
   mapping (uint256 => AccountingPeriod) public accountingPeriods;
   uint256 public currentPeriod;
 
-  function startNewAccoutingPeriod() requiresPermission(PermissionLevel.Manager) {
+  function startNewAccoutingPeriod() requiresPermission(PermissionLevel.Write) {
     currentPeriod += 1;
     var lastPeriod = accountingPeriods[currentPeriod - 1];
     var lastProfit = int256(lastPeriod.premiums) - int256(lastPeriod.claims) - int256(lastPeriod.pastLosses);

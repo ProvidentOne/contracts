@@ -60,8 +60,19 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
     return insurance().createClaim(msg.sender, claimType, evidence, beneficiary);
   }
 
+  function buyTokens() payable public {
+    if (!investment().buyTokens(msg.sender, msg.value)) {
+      throw;
+    }
+    accounting().saveTransaction(AccountingPersistance.TransactionDirection.Incoming, msg.value, msg.sender, this, 'tokens bought', false);
+  }
+
   function insurance() private returns (InsuranceService) {
     return InsuranceService(addressFor('InsuranceService'));
+  }
+
+  function investment() private returns (InvestmentService) {
+    return InvestmentService(addressFor('InvestmentService'));
   }
 
   function accounting() private returns (AccountingPersistance) {
@@ -77,6 +88,8 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
     addPersistance(address(insuranceDB));
     AccountingPersistance accountingDB = new AccountingPersistance();
     addPersistance(address(accountingDB));
+    InvestmentPersistance investmentDB = new InvestmentPersistance();
+    addPersistance(address(investmentDB));
     isBootstraped = true;
   }
 
@@ -90,7 +103,9 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
     }
   }
 
-  function setInvestmentService(address investment) onlyOwner {
+  function setInvestmentService(address investment, bool bootstrap) onlyOwner {
+    InvestmentPersistance(addressFor('InvestmentDB')).assignPermission(investment, Managed.PermissionLevel.Write);
+    AccountingPersistance(addressFor('AccountingDB')).assignPermission(investment, Managed.PermissionLevel.Write);
     addService(investment);
     TokenAddressChanged(investment);
   }
