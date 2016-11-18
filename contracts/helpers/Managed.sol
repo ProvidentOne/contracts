@@ -58,7 +58,7 @@ contract Manager is Owned {
     throw;
   }
 
-  function sendFunds(address recipient, uint256 amount, string concept) returns (bool);
+  function sendFunds(address recipient, uint256 amount, string concept, bool isDividend) returns (bool);
 }
 
 contract Managed {

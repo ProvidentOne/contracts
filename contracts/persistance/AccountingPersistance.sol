@@ -36,7 +36,7 @@ contract AccountingPersistance is Managed('AccountingDB') {
         accountingPeriods[currentPeriod].claims += amount;
       }
     } else {
-      accountingPeriods[currentPeriod].dividends = amount;
+      accountingPeriods[currentPeriod].dividends += amount;
     }
   }
 

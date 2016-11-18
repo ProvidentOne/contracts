@@ -112,7 +112,7 @@ contract InsuranceService is Managed('InsuranceService') {
       Claim claim = Claim(claimAddress);
       if (claim.currentState() == Claim.ClaimStates.Accepted) {
         uint256 claimAmount = moneyForClaim(claim.claimType());
-        if (Manager(manager).sendFunds(claimAddress, claimAmount, 'claim') &&
+        if (Manager(manager).sendFunds(claimAddress, claimAmount, 'claim', false) &&
             claim.currentState() == Claim.ClaimStates.Payed) {
           PayoutForClaim(claimAddress, claimAmount);
         } else {

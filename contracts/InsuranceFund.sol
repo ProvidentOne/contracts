@@ -21,15 +21,15 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
   event TokenAddressChanged(address newTokenAddress);
 
   modifier onlyWaivedServices {
-    if (msg.sender == addressFor('InsuranceService')) {
+    if (msg.sender == addressFor('InsuranceService') || msg.sender == addressFor('InvestmentService')) {
       _;
     } else {
       throw;
     }
   }
 
-  function sendFunds(address recipient, uint256 amount, string concept) onlyWaivedServices returns (bool) {
-    accounting().saveTransaction(AccountingPersistance.TransactionDirection.Outgoing, amount, this, recipient, concept, false);
+  function sendFunds(address recipient, uint256 amount, string concept, bool isDividend) onlyWaivedServices returns (bool) {
+    accounting().saveTransaction(AccountingPersistance.TransactionDirection.Outgoing, amount, this, recipient, concept, isDividend);
     if (!recipient.send(amount)) {
       throw;
     }
@@ -65,6 +65,10 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
       throw;
     }
     accounting().saveTransaction(AccountingPersistance.TransactionDirection.Incoming, msg.value, msg.sender, this, 'tokens bought', false);
+  }
+
+  function withdrawDividends() public {
+    investment().withdrawDividendsForHolder(msg.sender);
   }
 
   function insurance() private returns (InsuranceService) {

@@ -84,6 +84,14 @@ contract InvestmentService is Managed('InvestmentService'), Token {
     return true;
   }
 
+  function withdrawDividendsForHolder(address holder) requiresPermission(PermissionLevel.Manager) {
+    if (!Manager(manager).sendFunds(holder, persistance().dividends(holder), 'div', true)) {
+      throw;
+    }
+
+    persistance().operateDividend(holder, 0);
+  }
+
   function sendProfitsToInvestors(uint256 profits) private returns (bool) {
     uint256 circulatingTokens = totalSupply() - persistance().balances(manager);
     uint256 dividendPerToken = profits / circulatingTokens; // Tokens held by contract do not participate in dividends
