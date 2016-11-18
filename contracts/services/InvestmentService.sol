@@ -12,16 +12,18 @@ contract InvestmentService is Managed('InvestmentService'), Token {
 
   // Expressed in % since you cannot express floats numbers in solidity.
   uint8 constant public holderTokensPct = 10;
-
-  uint256 public tokenPrice;
+  bool public mintingAllowed;
 
   event Dividends(uint perToken);
   event TokenOffering(uint tokenAmount, uint tokenPrice);
 
-  function InvestmentService(uint256 initialSupply, uint256 initialTokenPrice) {
-    tokenPrice = initialTokenPrice;
+  function InvestmentService() {
+    mintingAllowed = false;
+  }
 
+  function bootstrapInvestmentService(uint256 initialSupply, uint256 initialTokenPrice) requiresPermission(PermissionLevel.Manager) {
     mintingAllowed = true;
+    persistance().setTokenPrice(initialTokenPrice);
     mintTokens(initialSupply);
   }
 
@@ -54,44 +56,38 @@ contract InvestmentService is Managed('InvestmentService'), Token {
     persistance.operateBalance(manager, newTokens - tokensForHolder);
     persistance.operateBalance(Manager(manager).owner(), tokensForHolder);
 
-    TokenOffering(availableTokenSupply(), tokenPrice);
+    TokenOffering(availableTokenSupply(), tokenPrice());
   }
 
-  function assingTokens(address holder, uint256 value) payable {
-    uint256 tokenAmount = value / tokenPrice;
-    if (balances[this] >= tokenAmount && balances[holder] + tokenAmount > balances[holder])  {
-      balances[holder] += tokenAmount;
-      balances[this] -= tokenAmount;
+  function assingTokens(address holder, uint256 value) requiresPermission(PermissionLevel.Manager) {
+    uint256 tokenAmount = value / tokenPrice();
+    if (persistance().balances(manager) >= tokenAmount && persistance().balances(holder) + tokenAmount > persistance().balances(holder))  {
+      persistance().operateBalance(holder, tokenAmount);
+      persistance().operateBalance(manager, -1 * tokenAmount);
+
       Transfer(this, holder, tokenAmount);
-      addIfNewHolder(holder);
-      if (!addressFor("InsuranceService").call.value(holder)()) {
-        throw;
-      }
     } else {
       throw;
     }
   }
 
-  function sendProfitsToInvestors() payable requiresPermission(PermissionLevel.Manager) returns (bool) {
-    uint256 dividendPerToken = msg.value / (totalSupply - balances[this]); // Tokens held by contract do not participate in dividends
-    for (uint i = 0; i<lastIndex; ++i) {
-      address holder = tokenHolders[i];
-      if (holder != address(this)) {
-        dividends[holder] += balances[holder] * dividendPerToken;
+  function sendProfitsToInvestors(uint256 profits) payable requiresPermission(PermissionLevel.Manager) returns (bool) {
+    uint256 circulatingTokens = totalSupply() - persistance.getBalance(manager);
+    uint256 dividendPerToken = profits / circulatingTokens; // Tokens held by contract do not participate in dividends
+
+    uint256 holderIndex = persistance().holderIndex();
+    for (uint i = 0; i<holderIndex; ++i) {
+      address holder = persistance().tokenHolders(i);
+      if (holder != manager) {
+        persistance().operateDividend(persistance().balances(holder) * dividendPerToken);
       }
     }
     Dividends(dividendPerToken);
 
     mintingAllowed = true;
-    mintTokens(totalSupply * newTokenPct / 100);
+    // mintTokens(totalSupply * newTokenPct / 100);
 
     return true;
-  }
-
-  function withdraw() {
-    bool success = msg.sender.call.value(dividends[msg.sender])();
-    dividends[msg.sender] = 0;
-    if (!success) { throw; }
   }
 
   function transfer(address _to, uint256 _value) returns (bool success) {
@@ -99,11 +95,10 @@ contract InvestmentService is Managed('InvestmentService'), Token {
       //If your token leaves out totalSupply and can issue more tokens as time goes on, you need to check if it doesn't wrap.
       //Replace the if with this one instead.
       //if (balances[msg.sender] >= _value && balances[_to] + _value > balances[_to]) {
-      if (balances[msg.sender] >= _value && _value > 0) {
-          balances[msg.sender] -= _value;
-          balances[_to] += _value;
+      if (persistance().balance(msg.sender) >= _value && _value > 0) {
+          persistance().operateBalance(msg.sender, -1 * _value);
+          persistance().operateBalance(_to, _value);
 
-          addIfNewHolder(_to);
           Transfer(msg.sender, _to, _value);
           return true;
       } else { return false; }
@@ -112,38 +107,35 @@ contract InvestmentService is Managed('InvestmentService'), Token {
   function transferFrom(address _from, address _to, uint256 _value) returns (bool success) {
       //same as above. Replace this line with the following if you want to protect against wrapping uints.
       //if (balances[_from] >= _value && allowed[_from][msg.sender] >= _value && balances[_to] + _value > balances[_to]) {
-      if (balances[_from] >= _value && allowed[_from][msg.sender] >= _value && _value > 0) {
-          balances[_to] += _value;
-          balances[_from] -= _value;
-          allowed[_from][msg.sender] -= _value;
-          addIfNewHolder(_to);
+      if (persistance().balance(_from) >= _value && persistance().allowance(_from)(msg.sender) >= _value && _value > 0) {
+          persistance().operateBalance(_to, _value);
+          persistance().operateBalance(_from, -1 * _value);
+          persistance().operateAllowance(_from, msg.sender, -1 * _value);
+
           Transfer(_from, _to, _value);
           return true;
       } else { return false; }
   }
 
   function balanceOf(address _owner) constant returns (uint256 balance) {
-      return balances[_owner];
+      return persistance().balances(_owner);
   }
 
   function approve(address _spender, uint256 _value) returns (bool success) {
-      allowed[msg.sender][_spender] = _value;
+      persistance().operateAllowance(msg.sender, _spender, _value);
       Approval(msg.sender, _spender, _value);
       return true;
   }
 
   function allowance(address _owner, address _spender) constant returns (uint256 remaining) {
-    return allowed[_owner][_spender];
-  }
-  function changeTokenSellPrice(uint256 newPrice) requiresPermission(PermissionLevel.Manager) {
-    tokenPrice = newPrice;
+    return persistance().allowed(_owner)(_spender);
   }
 
   function persistance() returns (InvestmentPersistance) {
     return InvestmentPersistance(addressFor('InvestmentDB'));
   }
 
-  function() payable {
-    assignTokens(msg.sender, msg.value);
+  function() {
+    throw;
   }
 }

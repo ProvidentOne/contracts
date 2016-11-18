@@ -11,7 +11,7 @@ contract InvestmentPersistance is Managed('InvestmentDB') {
   mapping (address => uint256) balances;
   mapping (address => mapping (address => uint256)) allowed;
   mapping (uint256 => address) public tokenHolders;
-  uint256 private holderIndex;
+  uint256 public holderIndex;
   mapping (address => bool) private isHolder;
 
   function setTokenSupply(uint256 newTotalSupply) requiresPermission(PermissionLevel.Write) {
