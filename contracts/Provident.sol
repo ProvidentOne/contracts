@@ -10,6 +10,7 @@ contract Provident {
   function createClaim(uint16 claimType, string evidence, address beneficiary) returns (bool);
 
   // Investor related
+  event TokenAddressChanged(address newTokenAddress);
   function getTokenAddress() constant returns (address); // ERC20 Compliant Token
   function getCurrentTokenOffer() constant returns (uint256 price, uint256 availableTokens);
 

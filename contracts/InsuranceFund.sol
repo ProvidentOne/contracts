@@ -18,8 +18,6 @@ contract InsuranceFund is Provident, Manager {
     bootstrapPersistance();
   }
 
-  event TokenAddressChanged(address newTokenAddress);
-
   function getNumberOfInsurancePlans() constant public returns (uint16) {
     return insurance().getPlanCount();
   }
