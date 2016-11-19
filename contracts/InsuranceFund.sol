@@ -9,9 +9,10 @@ import "persistance/AccountingPersistance.sol";
 
 import "helpers/Managed.sol";
 
-contract InsuranceFund is Manager {
+contract InsuranceFund is Manager { // is Provident not compiles (not errors either :()
   bool isBootstraped;
-event TokenAddressChanged(address newTokenAddress);
+  event TokenAddressChanged(address newTokenAddress);
+
   function InsuranceFund() {
     owner = msg.sender;
     isBootstraped = false;
