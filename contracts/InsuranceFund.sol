@@ -9,9 +9,9 @@ import "persistance/AccountingPersistance.sol";
 
 import "helpers/Managed.sol";
 
-contract InsuranceFund is Provident, Manager {
+contract InsuranceFund is Manager {
   bool isBootstraped;
-
+event TokenAddressChanged(address newTokenAddress);
   function InsuranceFund() {
     owner = msg.sender;
     isBootstraped = false;
@@ -26,7 +26,7 @@ contract InsuranceFund is Provident, Manager {
     return insurance().getPlanPrice(plan);
   }
 
-  function getInsuredProfile() constant returns (int16 plan, uint256 startDate, uint256 finalDate) {
+  function getInsuredProfile() constant public returns (int16 plan, uint256 startDate, uint256 finalDate) {
     var (p,s,f,) = insurance().getInsuranceProfile(msg.sender);
     return (p,s,f);
   }
@@ -38,15 +38,15 @@ contract InsuranceFund is Provident, Manager {
     accounting().saveTransaction(AccountingPersistance.TransactionDirection.Incoming, msg.value, msg.sender, this, 'premium bought', false);
   }
 
-  function createClaim(uint16 claimType, string evidence, address beneficiary) returns (bool) {
+  function createClaim(uint16 claimType, string evidence, address beneficiary) public returns (bool) {
     return insurance().createClaim(msg.sender, claimType, evidence, beneficiary);
   }
 
-  function getTokenAddress() constant returns (address) {
+  function getTokenAddress() constant public returns (address) {
     return address(investment());
   }
 
-  function getCurrentTokenOffer() constant returns (uint256 price, uint256 availableTokens) {
+  function getCurrentTokenOffer() constant public returns (uint256 price, uint256 availableTokens) {
     return (investment().tokenPrice(), investment().availableTokenSupply());
   }
 

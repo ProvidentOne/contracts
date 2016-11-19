@@ -1,6 +1,6 @@
 const helpers = require('./helpers');
 
-contract('InsuranceFund', (accounts) => {
+contract('InsuranceService', (accounts) => {
   it("should deploy fund and service", function(done) {
     var fund;
     deployContract()
@@ -79,7 +79,7 @@ contract('InsuranceFund', (accounts) => {
 deployContract = () => {
   var fund;
   var service;
-  return InsuranceFund.new({gas: 5100000}).then((f) => {
+  return InsuranceFund.new({gas: 10000000}).then((f) => {
     fund = f;
     return InsuranceService.new();
   })
