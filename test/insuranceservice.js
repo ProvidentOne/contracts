@@ -79,7 +79,7 @@ contract('InsuranceFund', (accounts) => {
 deployContract = () => {
   var fund;
   var service;
-  return InsuranceFund.new().then((f) => {
+  return InsuranceFund.new({gas: 5100000}).then((f) => {
     fund = f;
     return InsuranceService.new();
   })
