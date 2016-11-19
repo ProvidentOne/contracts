@@ -1,5 +1,5 @@
 #!/bin/sh
 
 killall node
-nohup sh start_testrpc.sh &
+nohup sh testchain.sh &
 truffle test
