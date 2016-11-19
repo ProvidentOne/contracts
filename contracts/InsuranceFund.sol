@@ -9,7 +9,7 @@ import "persistance/AccountingPersistance.sol";
 
 import "helpers/Managed.sol";
 
-contract InsuranceFund is Manager { // is Provident (need to properly conform first)
+contract InsuranceFund is Provident, Manager {
   bool isBootstraped;
 
   function InsuranceFund() {
@@ -19,22 +19,6 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
   }
 
   event TokenAddressChanged(address newTokenAddress);
-
-  modifier onlyWaivedServices {
-    if (msg.sender == addressFor('InsuranceService') || msg.sender == addressFor('InvestmentService')) {
-      _;
-    } else {
-      throw;
-    }
-  }
-
-  function sendFunds(address recipient, uint256 amount, string concept, bool isDividend) onlyWaivedServices returns (bool) {
-    accounting().saveTransaction(AccountingPersistance.TransactionDirection.Outgoing, amount, this, recipient, concept, isDividend);
-    if (!recipient.send(amount)) {
-      throw;
-    }
-    return true;
-  }
 
   function getNumberOfInsurancePlans() constant public returns (uint16) {
     return insurance().getPlanCount();
@@ -60,6 +44,14 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
     return insurance().createClaim(msg.sender, claimType, evidence, beneficiary);
   }
 
+  function getTokenAddress() constant returns (address) {
+    return address(investment());
+  }
+
+  function getCurrentTokenOffer() constant returns (uint256 price, uint256 availableTokens) {
+    return (investment().tokenPrice(), investment().availableTokenSupply());
+  }
+
   function buyTokens() payable public {
     if (!investment().buyTokens(msg.sender, msg.value)) {
       throw;
@@ -69,6 +61,24 @@ contract InsuranceFund is Manager { // is Provident (need to properly conform fi
 
   function withdrawDividends() public {
     investment().withdrawDividendsForHolder(msg.sender);
+  }
+
+  // Private
+
+  modifier onlyWaivedServices {
+    if (msg.sender == addressFor('InsuranceService') || msg.sender == addressFor('InvestmentService')) {
+      _;
+    } else {
+      throw;
+    }
+  }
+
+  function sendFunds(address recipient, uint256 amount, string concept, bool isDividend) onlyWaivedServices returns (bool) {
+    accounting().saveTransaction(AccountingPersistance.TransactionDirection.Outgoing, amount, this, recipient, concept, isDividend);
+    if (!recipient.send(amount)) {
+      throw;
+    }
+    return true;
   }
 
   function insurance() private returns (InsuranceService) {
