@@ -14,7 +14,7 @@ contract('InsuranceFund', (accounts) => {
       });
   });
 
-  it("should be able to buy insurance tokens", function(done) {
+  it("should be able to buy insurance plans", function(done) {
     var fund;
     var price;
 
