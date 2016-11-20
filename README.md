@@ -17,7 +17,7 @@ It is explained in more detail in the [whitepaper](https://provident.one/whitepa
 The recommended workflow for developing and contributing to the contracts is using the `truffle console` for compiling, deploying and playing with contracts. In order to do that, just:
 
 ```sh
-$ npm install -g truffle testrpc
+$ npm install -g truffle ethereumjs-testrpc
 
 $ testrpc // leave process running
 $ truffle console
@@ -30,7 +30,7 @@ Compiling InsuranceFund.sol
 Insurance Fund deployed eth-pudding object
 ```
 
-You need to be running a Ethereum node with RPC enabled for Truffle to connect. In this example, we are just running it with [testrpc], which is a in-memory RPC enabled node written in JS, that is very fast for development and testing. This can be run also on a private blockchain running with [geth](https://github.com/ethereum/go-ethereum), the Ethereum testnet or the mainnet. See [Truffle network configuration](http://truffleframework.com/docs/advanced/networks) for more info.
+You need to be running a Ethereum node with RPC enabled for Truffle to connect. In this example, we are just running it with [testrpc](https://github.com/ethereumjs/testrpc), which is a in-memory RPC enabled node written in JS, that is very fast for development and testing. This can be run also on a private blockchain running with [geth](https://github.com/ethereum/go-ethereum), the Ethereum testnet or the mainnet. See [Truffle network configuration](http://truffleframework.com/docs/advanced/networks) for more info.
 
 
 ## Testing
