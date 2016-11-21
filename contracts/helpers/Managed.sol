@@ -24,9 +24,6 @@ contract Manager is Owned {
     bytes32 h = service.identifier();
     if (services[h] != 0x0) {
       service.destroy();
-    } else {
-      //allServices[allServicesIndex] = h;
-      //allServicesIndex += 1;
     }
 
     services[h] = newService;
@@ -35,11 +32,15 @@ contract Manager is Owned {
   function addPersistance(address newPersistance) onlyOwner {
     Managed db = Managed(newPersistance);
     bytes32 h = db.identifier();
-    if (persistance[h] != 0x0) {
+
+    var oldPersistance = persistance[h];
+    persistance[h] = newPersistance;
+
+    if (oldPersistance != 0x0) {
       // TODO: Implement persistance migrations
       db.destroy();
+      assignAllPermissions();
     }
-    persistance[h] = newPersistance;
   }
 
   function addressFor(string identifier) constant returns (address) {
@@ -58,6 +59,7 @@ contract Manager is Owned {
     throw;
   }
 
+  function assignAllPermissions();
   function sendFunds(address recipient, uint256 amount, string concept, bool isDividend) returns (bool);
 }
 

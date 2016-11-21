@@ -108,8 +108,8 @@ contract InsuranceFund is Manager { // is Provident not compiles (not errors eit
 
   function setInsuranceService(address insurance, bool setInitialPlans) onlyOwner {
     InsuranceService insuranceService = InsuranceService(insurance);
-    InsurancePersistance(addressFor('InsuranceDB')).assignPermission(insurance, Managed.PermissionLevel.Write);
     addService(insurance);
+    assignInsuranceServicePermissions(insurance);
 
     if (setInitialPlans) {
       insuranceService.setInitialPlans();
@@ -117,14 +117,28 @@ contract InsuranceFund is Manager { // is Provident not compiles (not errors eit
   }
 
   function setInvestmentService(address investment, bool bootstrap) onlyOwner {
-    InvestmentPersistance(addressFor('InvestmentDB')).assignPermission(investment, Managed.PermissionLevel.Write);
-    AccountingPersistance(addressFor('AccountingDB')).assignPermission(investment, Managed.PermissionLevel.Write);
     addService(investment);
+    assignInvestmentServicePermisions(investment);
 
     if (bootstrap) {
       InvestmentService(investment).bootstrapInvestmentService(1000000, 1 ether);
     }
 
     TokenAddressChanged(investment);
+  }
+
+  function assignAllPermissions() onlyOwner {
+    assignInsuranceServicePermissions(address(insurance()));
+    assignInvestmentServicePermisions(address(investment()));
+    
+  }
+
+  function assignInsuranceServicePermissions(address insurance) onlyOwner {
+    InsurancePersistance(addressFor('InsuranceDB')).assignPermission(insurance, Managed.PermissionLevel.Write);
+  }
+
+  function assignInvestmentServicePermisions(address investment) onlyOwner {
+    InvestmentPersistance(addressFor('InvestmentDB')).assignPermission(investment, Managed.PermissionLevel.Write);
+    AccountingPersistance(addressFor('AccountingDB')).assignPermission(investment, Managed.PermissionLevel.Write);
   }
 }

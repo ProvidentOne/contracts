@@ -135,25 +135,6 @@ contract InsuranceService is Managed('InsuranceService') {
       return 5 ether;
     }
 
-    /*
-    function performFundAccounting() public requiresPermission(PermissionLevel.Manager) {
-      int256 balance = int256(soldPremiums) - int256(claimedMoney) - int256(accumulatedLosses);
-      if (balance > 0) {
-          if (InvestmentService(addressFor('Investment')).sendProfitsToInvestors.value(uint256(balance))()) {
-            soldPremiums = 0;
-            claimedMoney = 0;
-            accumulatedLosses = 0;
-          } else {
-            throw;
-          }
-      } else {
-        soldPremiums = 0;
-        claimedMoney = 0;
-        accumulatedLosses = uint256(-balance);
-      }
-    }
-    */
-
     function persistance() constant private returns (InsurancePersistance) {
       return InsurancePersistance(addressFor('InsuranceDB'));
     }
