@@ -16,13 +16,15 @@ contract('InvestmentService', (accounts) => {
 
   it("holder should receive tokens from minting", function(done) {
     var fund;
+    var service;
     deployInvContract()
       .then((f) => {
         fund = f;
-        return InvestmentService.at(fund.investmentServiceAddress).balanceOf(accounts[0]);
+        service = InvestmentService.at(fund.investmentServiceAddress);
+        return Promise.all([service.balanceOf(accounts[0]), service.holderTokensPct(), service.initialSupply()]);
       })
-      .then((tokenBalance) => {
-        assert.isAbove(tokenBalance.valueOf(), 0, 'should own a portion of the minted tokens');
+      .then(([tokenBalance, holderPct, initialSupply]) => {
+        assert.equal(tokenBalance.valueOf(), holderPct.valueOf() * initialSupply.valueOf() / 100, 'should own portion of the minted tokens');
         done();
       });
   });

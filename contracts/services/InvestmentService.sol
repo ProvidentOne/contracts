@@ -14,6 +14,8 @@ contract InvestmentService is Managed('InvestmentService'), Token {
 
   // Expressed in % since you cannot express floats numbers in solidity.
   uint8 constant public holderTokensPct = 10;
+  uint256 constant public initialSupply = 1000000;
+
   bool public mintingAllowed;
   uint256 public allowedMinting;
 
@@ -25,7 +27,7 @@ contract InvestmentService is Managed('InvestmentService'), Token {
     allowedMinting = 0;
   }
 
-  function bootstrapInvestmentService(uint256 initialSupply, uint256 initialTokenPrice) requiresPermission(PermissionLevel.Manager) {
+  function bootstrapInvestmentService(uint256 initialTokenPrice) requiresPermission(PermissionLevel.Manager) {
     mintingAllowed = true;
     allowedMinting = initialSupply;
     persistance().setTokenPrice(initialTokenPrice);

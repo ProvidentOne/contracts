@@ -121,7 +121,7 @@ contract InsuranceFund is Manager { // is Provident not compiles (not errors eit
     assignInvestmentServicePermisions(investment);
 
     if (bootstrap) {
-      InvestmentService(investment).bootstrapInvestmentService(1000000, 1 ether);
+      InvestmentService(investment).bootstrapInvestmentService(1 ether);
     }
 
     TokenAddressChanged(investment);
@@ -130,7 +130,7 @@ contract InsuranceFund is Manager { // is Provident not compiles (not errors eit
   function assignAllPermissions() onlyOwner {
     assignInsuranceServicePermissions(address(insurance()));
     assignInvestmentServicePermisions(address(investment()));
-    
+
   }
 
   function assignInsuranceServicePermissions(address insurance) onlyOwner {
