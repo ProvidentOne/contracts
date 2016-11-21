@@ -3,7 +3,7 @@ const helpers = require('./helpers');
 contract('InsuranceService', (accounts) => {
   it("should deploy fund and service", function(done) {
     var fund;
-    deployContract()
+    deployInsContract()
       .then((f) => {
         fund = f;
         return f.addressFor('InsuranceService');
@@ -18,14 +18,14 @@ contract('InsuranceService', (accounts) => {
     var fund;
     var price;
 
-    deployContract()
+    deployInsContract()
       .then((f) => {
         fund = f;
         return buyLastInsurancePlan(fund);
       })
       .then(([payed]) => {
         price = payed;
-        return fund.getInsuredProfile();
+        return fund.getInsuredProfile.call();
       })
       .then(([plan, startDate, endDate]) => {
         assert.isAbove(plan.valueOf(), 0, 'should be enrolled in a plan');
@@ -38,7 +38,7 @@ contract('InsuranceService', (accounts) => {
   });
 
   it("should fail if doesn't pay enough", function(done) {
-    deployContract()
+    deployInsContract()
       .then((f) => {
         return f.buyInsurancePlan(0, {value: web3.toWei(1, 'wei')});
       })
@@ -54,7 +54,7 @@ contract('InsuranceService', (accounts) => {
 
   it("should be able to claim if it is token holder", function(done){
     var fund;
-    deployContract()
+    deployInsContract()
       .then((f) => {
         fund = f;
         return buyLastInsurancePlan(fund);
@@ -63,10 +63,10 @@ contract('InsuranceService', (accounts) => {
         return fund.createClaim(plan, 'test evidence', accounts[0]);
       })
       .then(() => {
-        return fund.addressFor('InsuranceService').then((a) => { return Promise.resolve(InsuranceService.at(a)) });
+        return fund.addressFor.call('InsuranceService').then((a) => { return Promise.resolve(InsuranceService.at(a)) });
       })
       .then((service) => {
-        return service.getInsuranceProfile(accounts[0]);
+        return service.getInsuranceProfile.call(accounts[0]);
       })
       .then(([plan, startDate, endDate, subscribedClaims]) => {
         assert.equal(subscribedClaims.valueOf(), 1, 'should be susbcribed to one claim')
@@ -76,7 +76,7 @@ contract('InsuranceService', (accounts) => {
   });
 });
 
-deployContract = () => {
+deployInsContract = () => {
   var fund;
   var service;
   return InsuranceFund.new({gas: 10000000}).then((f) => {
