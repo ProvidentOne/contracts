@@ -10,7 +10,7 @@ Right now we a are participating in the [hack.ether.camp](https://hack.ether.cam
 
 If you glance over the `contracts/` directory, you will find a not very well known way of architecting Ethereum contracts. This architecture has been chosen to allow for code modularity and allowing good upgradability of certain parts of the system.
 
-It is explained in more detail in the [whitepaper](https://provident.one/whitepaper) section 3, Implementation.
+It is explained in more detail in the [whitepaper section 3](https://github.com/ProvidentOne/whitepaper/blob/master/whitepaper.md#3-implementation), Implementation.
 
 ## Development
 
