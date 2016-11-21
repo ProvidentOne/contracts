@@ -14,6 +14,19 @@ contract('InvestmentService', (accounts) => {
       });
   });
 
+  it("holder should receive tokens from minting", function(done) {
+    var fund;
+    deployInvContract()
+      .then((f) => {
+        fund = f;
+        return InvestmentService.at(fund.investmentServiceAddress).balanceOf(accounts[0]);
+      })
+      .then((tokenBalance) => {
+        assert.isAbove(tokenBalance.valueOf(), 0, 'should own a portion of the minted tokens');
+        done();
+      });
+  });
+
   it("should be able to buy tokens", function(done) {
     var fund;
     var buyingTokens = 10;
