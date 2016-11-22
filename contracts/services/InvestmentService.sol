@@ -42,22 +42,34 @@ contract InvestmentService is Managed('InvestmentService'), Token {
     return persistance().balances(manager);
   }
 
+  function circulatingTokens() constant returns (uint256) {
+    return totalSupply() - availableTokenSupply();
+  }
+
   function tokenPrice() constant returns (uint256) {
     return persistance().tokenPrice();
   }
 
+  event Log(string debug);
+  event Log2(int256 a);
+
   function performFundAccounting() requiresPermission(PermissionLevel.Manager) {
+    Log("starting u know");
     var accounting = AccountingPersistance(addressFor('AccountingDB'));
     var (premiums,claims,) = accounting.accountingPeriods(accounting.currentPeriod());
     var delta = int256(premiums) - int256(claims);
+    Log2(delta);
+
     if (delta > 0) {
+      Log("profits");
       sendProfitsToInvestors(uint256(delta));
-      allowedMinting = calculateAllowedMinting();
+      //allowedMinting = calculateAllowedMinting();
       if (allowedMinting > 0) {
         mintingAllowed = true;
       }
     }
-    accounting.startNewAccoutingPeriod();
+
+    //accounting.startNewAccoutingPeriod();
   }
 
   function calculateAllowedMinting() returns (uint256) {
@@ -108,20 +120,20 @@ contract InvestmentService is Managed('InvestmentService'), Token {
   }
 
   function sendProfitsToInvestors(uint256 profits) private returns (bool) {
-    uint256 circulatingTokens = totalSupply() - persistance().balances(manager);
-    uint256 dividendPerToken = profits / circulatingTokens; // Tokens held by contract do not participate in dividends
+    uint256 dividendPerToken = profits / circulatingTokens(); // Tokens held by contract do not participate in dividends
+
 
     uint256 holderIndex = persistance().holderIndex();
-    for (uint i = 0; i<holderIndex; ++i) {
+    for (uint i = 0; i<holderIndex; i++) {
       address holder = persistance().tokenHolders(i);
       if (holder != manager) {
         persistance().operateDividend(holder, int256(persistance().balances(holder)) * int256(dividendPerToken));
       }
     }
+
     Dividends(dividendPerToken);
 
     mintingAllowed = true;
-    // mintTokens(totalSupply * newTokenPct / 100);
 
     return true;
   }
@@ -155,6 +167,10 @@ contract InvestmentService is Managed('InvestmentService'), Token {
 
   function balanceOf(address _owner) constant returns (uint256 balance) {
       return persistance().balances(_owner);
+  }
+
+  function dividendOf(address _owner) constant returns (uint256) {
+      return persistance().dividends(_owner);
   }
 
   function approve(address _spender, uint256 _value) returns (bool success) {

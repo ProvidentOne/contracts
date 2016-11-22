@@ -11,7 +11,7 @@ contract InvestmentPersistance is Managed('InvestmentDB') {
   mapping (address => uint256) public dividends;
   mapping (address => uint256) public balances;
   mapping (address => mapping (address => uint256)) public allowed;
-  
+
   mapping (uint256 => address) public tokenHolders;
   uint256 public holderIndex;
   mapping (address => bool) private isHolder;

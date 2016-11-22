@@ -57,6 +57,30 @@ contract('InvestmentService', (accounts) => {
         done();
       });
   });
+
+  it("should split dividends evenly", function(done) {
+    var fund;
+    var premiumAmount = web3.toWei(10, 'ether');
+    var claimAmount = web3.toWei(5, 'ether');
+    var dividends = premiumAmount.valueOf() - claimAmount.valueOf();
+    deployInvContract()
+      .then((f) => {
+        fund = f;
+        service = InvestmentService.at(fund.investmentServiceAddress);
+        return mockAccountingPersistance(fund, premiumAmount, claimAmount);
+      })
+      .then(() => {
+        console.log('performing accounting');
+        return service.performFundAccounting({gas: 9990000, from: accounts[0]});
+      })
+      .then(() => {
+        return service.dividendOf(accounts[0]);
+      })
+      .then((dividend) => {
+        assert.isAbove(dividend.valueOf(), 0, 'should have dividends');
+        done();
+      });
+  });
 });
 
 deployInvContract = () => {
@@ -76,5 +100,19 @@ deployInvContract = () => {
   })
   .then(() => {
     return Promise.resolve(fund);
+  });
+}
+
+mockAccountingPersistance = (fund, premiums, claims) => {
+  var accounting;
+  return AccountingPersistance.new().then((a) => {
+    accounting = a;
+    return fund.addPersistance(accounting.address);
+  }).then(() => {
+    return accounting.saveTransaction(1, claims, fund.address, fund.address, 'p', false);
+  }).then(() => {
+    return accounting.saveTransaction(0, premiums, fund.address, fund.address, 'c', false);
+  }).then(() => {
+    return accounting.transferManagement(fund.address);
   });
 }

@@ -23,7 +23,7 @@ contract Manager is Owned {
     Managed service = Managed(newService);
     bytes32 h = service.identifier();
     if (services[h] != 0x0) {
-      service.destroy();
+      Managed(services[h]).destroy();
     }
 
     services[h] = newService;
@@ -38,8 +38,8 @@ contract Manager is Owned {
 
     if (oldPersistance != 0x0) {
       // TODO: Implement persistance migrations
-      db.destroy();
-      assignAllPermissions();
+      Managed(oldPersistance).destroy();
+      // assignAllPermissions();
     }
   }
 
