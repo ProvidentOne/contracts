@@ -1,4 +1,5 @@
-![](https://cdn.rawgit.com/ProvidentOne/contracts/master/logo.png)
+<img src="logo.png" width="48">
+
 Provident One contracts [![Build Status](https://travis-ci.org/ProvidentOne/contracts.svg?branch=master)](https://travis-ci.org/ProvidentOne/contracts) [![Slack badge](https://slackin-wbssstbuyk.now.sh/badge.svg)](https://provident.one/slack)
 ===
 Provident One is a decentralized vehicle that runs on top of the Ethereum blockchain. It features insurance plans entities can subscribe to, a way for subscribers to claim to the insurance and a investment fund with a token that gives liquidity to the fund.
