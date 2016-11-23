@@ -1,3 +1,4 @@
+![](https://cdn.rawgit.com/ProvidentOne/contracts/master/logo.svg)
 Provident One contracts [![Build Status](https://travis-ci.org/ProvidentOne/contracts.svg?branch=master)](https://travis-ci.org/ProvidentOne/contracts) [![Slack badge](https://slackin-wbssstbuyk.now.sh/badge.svg)](https://provident.one/slack)
 ===
 Provident One is a decentralized vehicle that runs on top of the Ethereum blockchain. It features insurance plans entities can subscribe to, a way for subscribers to claim to the insurance and a investment fund with a token that gives liquidity to the fund.
@@ -35,13 +36,13 @@ You need to be running a Ethereum node with RPC enabled for Truffle to connect. 
 
 ## Testing
 
-We have been finding TDD to be a very good way to develop Solidity contracts, as it gives the peace of mind that you are not creating bugs as you continue developing. 
+We have been finding TDD to be a very good way to develop Solidity contracts, as it gives the peace of mind that you are not creating bugs as you continue developing.
 
 For running in the CI, a Docker image has been created for the sake of simplicity. It starts a testrpc node and runs the tests against it.
 
 Right now, there are lots of tests missing to cover the entire functionallity of the system. Help with tests is needed and apprecited.
 
-No Pull Requests will be merged unless there is a test case for that functionallity and all tests are passing in the CI. 
+No Pull Requests will be merged unless there is a test case for that functionallity and all tests are passing in the CI.
 
 
 ## Community [![Slack badge](https://slackin-wbssstbuyk.now.sh/badge.svg)](https://provident.one/slack)
